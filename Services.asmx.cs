@@ -5156,16 +5156,19 @@ namespace WebService
         [WebMethod(Description = "获取本机IP，Author:GL 2015-05-15")]
         public string getLocalmachineIPAddress()
         {
-            //string strHostName = Dns.GetHostName();
-            //IPHostEntry ipEntry = Dns.GetHostEntry(strHostName);
-            //foreach (IPAddress ip in ipEntry.AddressList)
-            //{
-            //    //IPV4
-            //    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-            //        return string.Format("{0}", ip);
-            //}
-            //return string.Format("{0}", ipEntry.AddressList[0]);
-            return "10.12.43.94";
+            string strHostName = Dns.GetHostName();
+            IPHostEntry ipEntry = Dns.GetHostEntry(strHostName);
+
+            IPAddress Temp = ipEntry.AddressList[0];
+            foreach (IPAddress ip in ipEntry.AddressList)
+            {
+                //IPV4
+                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                {
+                    Temp = ip;
+                }
+            }
+            return Temp.ToString();
         }
 
         #endregion
