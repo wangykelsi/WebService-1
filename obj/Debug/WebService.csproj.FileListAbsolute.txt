@@ -1,0 +1,68 @@
+c:\users\zam\documents\visual studio 2010\Projects\Mvc_Demo\WebService\bin\WebService.dll
+c:\users\zam\documents\visual studio 2010\Projects\Mvc_Demo\WebService\bin\WebService.pdb
+c:\users\zam\documents\visual studio 2010\Projects\Mvc_Demo\WebService\obj\Debug\ResolveAssemblyReference.cache
+c:\users\zam\documents\visual studio 2010\Projects\Mvc_Demo\WebService\obj\Debug\WebService.dll
+c:\users\zam\documents\visual studio 2010\Projects\Mvc_Demo\WebService\obj\Debug\WebService.pdb
+C:\Users\ZAM\Documents\visual studio 2010\Projects\Mvc_Webservice\WebService\bin\WebService.dll
+C:\Users\ZAM\Documents\visual studio 2010\Projects\Mvc_Webservice\WebService\bin\WebService.pdb
+C:\Users\ZAM\Documents\visual studio 2010\Projects\Mvc_Webservice\WebService\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\ZAM\Documents\visual studio 2010\Projects\Mvc_Webservice\WebService\obj\Debug\WebService.dll
+C:\Users\ZAM\Documents\visual studio 2010\Projects\Mvc_Webservice\WebService\obj\Debug\WebService.pdb
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\Webservice任务模板\Mvc_Webservice\WebService\bin\WebService.dll
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\Webservice任务模板\Mvc_Webservice\WebService\bin\WebService.pdb
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\Webservice任务模板\Mvc_Webservice\WebService\obj\Debug\ResolveAssemblyReference.cache
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\Webservice任务模板\Mvc_Webservice\WebService\obj\Debug\WebService.dll
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\Webservice任务模板\Mvc_Webservice\WebService\obj\Debug\WebService.pdb
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\Mvc_Webservice\WebService\bin\WebService.dll
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\Mvc_Webservice\WebService\bin\WebService.pdb
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\Mvc_Webservice\WebService\obj\Debug\ResolveAssemblyReference.cache
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\Mvc_Webservice\WebService\obj\Debug\WebService.dll
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\Mvc_Webservice\WebService\obj\Debug\WebService.pdb
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\任务20141203待汇总\WebService\obj\Debug\ResolveAssemblyReference.cache
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\任务20141203待汇总\WebService\obj\Debug\WebService.dll
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\任务20141203待汇总\WebService\obj\Debug\WebService.pdb
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\任务20141203待汇总\WebService\bin\WebService.dll
+D:\Lab\2014_慢病管理项目\慢病管理\WebService初步汇总20141124\任务20141203待汇总\WebService\bin\WebService.pdb
+D:\Lab\2014_慢病管理项目\慢病管理\Webservice20141208\WebService\bin\WebService.dll
+D:\Lab\2014_慢病管理项目\慢病管理\Webservice20141208\WebService\bin\WebService.pdb
+D:\Lab\2014_慢病管理项目\慢病管理\Webservice20141208\WebService\obj\Debug\WebService.dll
+D:\Lab\2014_慢病管理项目\慢病管理\Webservice20141208\WebService\obj\Debug\WebService.pdb
+D:\Lab\2014_慢病管理项目\慢病管理\Webservice20141208\WebService\obj\Debug\WebService.csprojResolveAssemblyReference.cache
+D:\实验室\慢病管理\WebService\新建文件夹\WebService\bin\WebService.dll
+D:\实验室\慢病管理\WebService\新建文件夹\WebService\bin\WebService.pdb
+D:\实验室\慢病管理\WebService\新建文件夹\WebService\obj\Debug\WebService.csprojResolveAssemblyReference.cache
+D:\实验室\慢病管理\WebService\新建文件夹\WebService\obj\Debug\WebService.dll
+D:\实验室\慢病管理\WebService\新建文件夹\WebService\obj\Debug\WebService.pdb
+D:\实验室\慢病管理\WebService\WebService\bin\WebService.dll
+D:\实验室\慢病管理\WebService\WebService\bin\WebService.pdb
+D:\实验室\慢病管理\WebService\WebService\obj\Debug\WebService.csprojResolveAssemblyReference.cache
+D:\实验室\慢病管理\WebService\WebService\obj\Debug\WebService.dll
+D:\实验室\慢病管理\WebService\WebService\obj\Debug\WebService.pdb
+L:\WebService-20150615（最新）\WebService\bin\WebService.dll
+L:\WebService-20150615（最新）\WebService\bin\WebService.pdb
+L:\WebService-20150615（最新）\WebService\obj\Debug\ResolveAssemblyReference.cache
+L:\WebService-20150615（最新）\WebService\obj\Debug\WebService.dll
+L:\WebService-20150615（最新）\WebService\obj\Debug\WebService.pdb
+D:\Project\WebService-20150615（最新）\WebService\bin\WebService.dll
+D:\Project\WebService-20150615（最新）\WebService\bin\WebService.pdb
+D:\Project\WebService-20150615（最新）\WebService\obj\Debug\ResolveAssemblyReference.cache
+D:\Project\WebService-20150615（最新）\WebService\obj\Debug\WebService.dll
+D:\Project\WebService-20150615（最新）\WebService\obj\Debug\WebService.pdb
+<<<<<<< HEAD
+C:\Users\Administrator\Desktop\lishan\git\WebService\bin\WebService.dll
+C:\Users\Administrator\Desktop\lishan\git\WebService\bin\WebService.pdb
+C:\Users\Administrator\Desktop\lishan\git\WebService\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\Administrator\Desktop\lishan\git\WebService\obj\Debug\WebService.dll
+C:\Users\Administrator\Desktop\lishan\git\WebService\obj\Debug\WebService.pdb
+=======
+F:\web\WebService\bin\WebService.dll
+F:\web\WebService\bin\WebService.pdb
+F:\web\WebService\obj\Debug\WebService.csprojResolveAssemblyReference.cache
+F:\web\WebService\obj\Debug\WebService.dll
+F:\web\WebService\obj\Debug\WebService.pdb
+C:\Users\MAC\Desktop\20150625CDMIS\WebService\bin\WebService.dll
+C:\Users\MAC\Desktop\20150625CDMIS\WebService\bin\WebService.pdb
+C:\Users\MAC\Desktop\20150625CDMIS\WebService\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\MAC\Desktop\20150625CDMIS\WebService\obj\Debug\WebService.dll
+C:\Users\MAC\Desktop\20150625CDMIS\WebService\obj\Debug\WebService.pdb
+>>>>>>> 12d7142cac697cba754de4037b1bddb55bb1e172
