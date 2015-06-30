@@ -1094,7 +1094,7 @@ namespace WebService
         }
 
         [WebMethod(Description = "修改用户基本信息 Table：Ps.BasicInfo Author:TDY  2014-12-03")]
-        public bool SetBasicInfo(string UserId, string UserName, int Birthday, int Gender, int BloodType, string IDNo, string DoctorId, int InsuranceType, int InvalidFlag, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
+        public bool SetBasicInfo(string UserId, string UserName, int Birthday, int Gender, int BloodType, string IDNo, string DoctorId, string InsuranceType, int InvalidFlag, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
         {
             try
             {
@@ -3184,7 +3184,7 @@ namespace WebService
 
         [WebMethod(Description = "插入患者基本信息 Table：Ps.BasicInfo Author:CSQ  2014-12-03")]
         //SetPatBasicInfo 插入患者基本信息 CSQ 2014-12-03
-        public bool SetPatBasicInfo(string UserId, string UserName, int Birthday, int Gender, int BloodType, string IDNo, string DoctorId, int InsuranceType, int InvalidFlag, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
+        public bool SetPatBasicInfo(string UserId, string UserName, int Birthday, int Gender, int BloodType, string IDNo, string DoctorId, string InsuranceType, int InvalidFlag, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
         {
             try
             {

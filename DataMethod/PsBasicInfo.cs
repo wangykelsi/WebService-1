@@ -12,7 +12,7 @@ namespace WebService.DataMethod
     public class PsBasicInfo
     {
         //SetData WF 2014-12-2 
-        public static bool SetData(DataConnection pclsCache, string UserId, string UserName, int Birthday, int Gender, int BloodType, string IDNo, string DoctorId, int InsuranceType, int InvalidFlag, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
+        public static bool SetData(DataConnection pclsCache, string UserId, string UserName, int Birthday, int Gender, int BloodType, string IDNo, string DoctorId, string InsuranceType, int InvalidFlag, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
         {
             bool IsSaved = false;
             try
