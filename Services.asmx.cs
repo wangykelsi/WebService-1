@@ -10334,8 +10334,18 @@ namespace WebService
                 foreach (DataRow item in DT_AUList.Rows)
                 {
                     string uid = item["UserId"].ToString();
-                    string hospital = CmMstHospital.GetName(_cnCache, PsDoctorInfoDetail.GetValue(_cnCache, uid, "Contact", "Contact001_5", 1));
-                    string dept = CmMstDivision.GetName(_cnCache, 1, PsDoctorInfoDetail.GetValue(_cnCache, uid, "Contact", "Contact001_8", 1));
+                    string hospitalCode = PsDoctorInfoDetail.GetValue(_cnCache, uid, "Contact", "Contact001_5", 1);
+                    string hospital = "";
+                    if (hospitalCode != null)
+                    { 
+                        hospital = CmMstHospital.GetName(_cnCache, hospitalCode);
+                    }
+                    string deptCode = PsDoctorInfoDetail.GetValue(_cnCache, uid, "Contact", "Contact001_8", 1);
+                    string dept = "";
+                    if (deptCode != null)
+                    { 
+                        dept = CmMstDivision.GetName(_cnCache, 1, deptCode);
+                    }
                     list.Rows.Add(uid, item["UserName"].ToString(), hospital, dept);
                 }
 
