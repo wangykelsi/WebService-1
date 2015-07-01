@@ -34,7 +34,33 @@ namespace WebService.DataMethod
                 pclsCache.DisConnect();
             }
         }
+        
+        //DeleteData WF 2015-07-01
+        public static int DeleteData(DataConnection pclsCache, string PatientId, string RoleClass)
+        {
+            int Ret = 0;
+            try
+            {
+                if (!pclsCache.Connect())
+                {
+                    //MessageBox.Show("Cache数据库连接失败");
+                    return Ret;
 
+                }
+                Ret = (int)Ps.RoleMatch.DeleteData(pclsCache.CacheConnectionObject, PatientId, RoleClass);
+                return Ret;
+            }
+            catch (Exception ex)
+            {
+                //MessageBox.Show(ex.ToString(), "保存失败！");
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Ps.RoleMatch.DeleteData", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return Ret;
+            }
+            finally
+            {
+                pclsCache.DisConnect();
+            }
+        }
         // GetAllRoleMatch LS 2015-03-26
         public static DataTable GetAllRoleMatch(DataConnection pclsCache, string UserID)
         {

@@ -2635,7 +2635,22 @@ namespace WebService
             }
         }
 
-
+        [WebMethod(Description = "删除角色信息 Table:Ps.RoleMatch  Author:WF 2015-07-01")]
+        // DeleteRoleData 删除角色信息 WF 2015-07-01
+        public int DeleteRoleData(string PatientId, string RoleClass)
+        {
+            try
+            {
+                int ret = PsRoleMatch.DeleteData(_cnCache, PatientId, RoleClass);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "DeleteRoleData", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return 0;
+                throw ex;
+            }
+        }
         [WebMethod(Description = "Cm.MstUser获取用户的角色 Table:Cm.MstUser  Author:ZC 2015-01-06")]
         // GetClassByUserId 获取用户的角色 Author:ZC 2015-01-06
         public string GetClassByUserId(string UserId)
