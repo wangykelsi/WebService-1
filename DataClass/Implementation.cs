@@ -19,32 +19,40 @@ namespace WebService.DataClass
 
         public string CompliacneValue { get; set; }         //此计划 最近一周的依从率 或 整个计划依从率
 
+        public int StartDate { get; set; }                //计划的时间起始，作为体征切换的时间输入
+
+        public int EndDate { get; set; }
+
+        //是否有其他任务（除体征测量之外）的标志位？   
+        //public string OtherTasks { get; set; }    // 1有 0没有
+
         public List<PlanDeatil> PlanList { get; set; }     //所有计划列表(正在实施中的 和 已经结束的)
 
         public List<Task> TaskList { get; set; }          //此计划的任务列表
 
-        public chartData chartData { get; set; }        //画图数据-血压、脉率值，分级情况，依从情况
+        public ChartData ChartData { get; set; }        //画图数据-血压、脉率值，分级情况，依从情况
 
         public ImplementationInfo()
         {
             PatientInfo = new PatientInfo1();          //初始化
             PlanList = new List<PlanDeatil>();
             TaskList = new List<Task>();
-            chartData = new chartData();
+            ChartData = new ChartData();
         }
 
     }
 
-    //Pad和Phone 区别：（1）PlanList Pad有，Phone只显示正在执行的计划 （2）依从率：Pad 最近一周/整个计划  Phone只最近一周 （3） Phone有血压详细查看（时刻）（4）Phone患者使用，不需再获取基本信息
     public class ImplementationPhone           //Phone版
     {
+        public string NowPlanNo { get; set; }       //正在执行的计划编号 ""则无
+
         public string ProgressRate { get; set; }       //进度
 
         public string RemainingDays { get; set; }       //剩余天数
 
         public string CompliacneValue { get; set; }       //最近一周的依从率
 
-        public chartData chartData { get; set; }
+        public ChartData ChartData { get; set; }
 
         public int StartDate { get; set; }    //最近一周的时间起始，作为血压详细查看（时刻）的时间输入
 
@@ -52,7 +60,7 @@ namespace WebService.DataClass
 
         public ImplementationPhone()
         {
-            chartData = new chartData();
+            ChartData = new ChartData();
         }
 
     }
@@ -68,25 +76,82 @@ namespace WebService.DataClass
 
     }
 
-    public class chartData  //画图数据集合
+
+    public class ChartData //画图数据集合
     {
 
-        public List<Graph> graphList { get; set; }   //图：点
+        public List<Graph> GraphList { get; set; }   //图：点
 
-        public List<GuideList> BPGuide { get; set; }  //图：血压分级区域和最大最小值 种类：收缩压、舒张压
+        public GraphGuide GraphGuide { get; set; }  //图：血。压分级区域和最大最小值 种类：收缩压、舒张压
 
-        public chartData()
+        //是否有其他任务（除体征测量之外）的标志位？   
+        public string OtherTasks { get; set; }    // 1有 0没有
+
+        public ChartData()
         {
-            graphList = new List<Graph>();
-            BPGuide = new List<GuideList>();
+            GraphList = new List<Graph>();
+            GraphGuide = new GraphGuide();
+            OtherTasks = "0";
         }
     }
 
+    public class Graph         //图的主要点数据
+    {
+        //日期
+        public string Date { get; set; }       //日期，到天
 
-    public class GuideList      //血压分级区域和最大最小值
+        //图-测量任务，体征数据部分
+        public string SignValue { get; set; }          //Y值
+
+        public string SignGrade { get; set; }          //Y值级别  暂时只用来确定颜色，后期可作文字显示 “偏高、很高等”
+
+        public string SignColor { get; set; }         //点颜色  
+
+        public string SignShape { get; set; }         //点形状  
+
+        public string SignDescription { get; set; }    //点的气球文本   样式——日期  <br> 收缩压/舒张压 mmHg  <br> 脉率 次/分
+
+
+
+        //图-其他任务依从情况（包括用药、生活方式等）
+        public string DrugValue { get; set; }         //画在下部图，保持Y=1
+
+        public string DrugBullet { get; set; }       //客制化颜色 用图片-部分完成 "amcharts-images/drug.png" 半白半黑图片
+
+        public string DrugColor { get; set; }        //药的其他颜色-完全未完成、完成	
+
+        public string DrugDescription { get; set; }       //任务依从情况描述 "部分完成；未吃:阿司匹林、青霉素；已吃：钙片、板蓝根"  使用叉勾图标
+
+
+        //暂时用不到的
+        //public string BPBullet { get; set; }       //客制化血压点 "amcharts-images/star.png"
+
+        //public string timeDetail { get; set; }    //最新测试的具体时间，到min
+
+        public Graph()
+        {
+
+            //初始化  初始化为无记录状态，还是未完成任务状态？
+            //暂时未完成任务状态  因为从PsCompliance取出那天，最初默认的就是未完成任务！
+            //SignValue = "";  //string默认初始化为""，所以不需要再赋值
+            //SignGrade = "";
+            // SignColor = "";
+            // SignShape = "";
+            //SignDescription = "";
+
+            DrugValue = "";            //可能没有用药或其他任务
+            DrugBullet = "";         //初始化  时间肯定有  默认所有任务（生理测量、用药）为未完成任务状态
+            DrugColor = "";  //白色 "#FFFFFF"
+            DrugDescription = "";  //可能无任务，也可能任务未完成 不确定状态  "无记录";
+        }
+
+
+    }
+
+    public class GraphGuide      //血压分级区域和最大最小值     
     {
 
-        public List<Guide> Guides { get; set; }   //血压分级区域
+        public List<Guide> GuideList { get; set; }   //血压分级区域
 
         public string original { get; set; }      //初始值
 
@@ -96,75 +161,9 @@ namespace WebService.DataClass
 
         public double maximum { get; set; }       //Y值上限
 
-        public GuideList()
+        public GraphGuide()
         {
-            Guides = new List<Guide>();
-        }
-    }
-
-    public class Graph          //图的主要点数据
-    {
-        //日期
-        public string date { get; set; }       //日期，到天
-
-        //public string value { get; set; }          //值
-        //public string Grade { get; set; }           //值级别
-        //public string lineColor { get; set; }      //点颜色    
-        //public string bulletShape { get; set; }    //点形状  
-
-        public string SBPvalue { get; set; }         //收缩压值
-
-        public string SBPGrade { get; set; }         //收缩压等级 
-
-        public string SBPlineColor { get; set; }      //收缩压点颜色
-
-        public string SBPbulletShape { get; set; }    //收缩压形状：一般（圆 round），当天（菱形diamond）
-
-
-
-        //是否需要抽取成共同的类？                       因为颜色、数据形状判断可能不一样！
-        //舒张压
-        public string DBPvalue { get; set; }
-
-        public string DBPGrade { get; set; }
-
-        public string DBPlineColor { get; set; }
-
-        public string DBPbulletShape { get; set; }
-
-
-        //脉率
-
-
-
-
-
-        //暂时用不到的
-        //public string BPBullet { get; set; }       //客制化血压点 "amcharts-images/star.png"
-
-        //public string description { get; set; }    //血压点的气球文本（另一血压值）
-
-        //public string timeDetail { get; set; }    //测试的具体时间，到s
-
-
-        //当天用药（包含其他任务的描述）
-        public string drugValue { get; set; }         //用药情况画在下部图，保持Y=1
-
-        public string drugBullet { get; set; }       //客制化用药状态-部分完成 "amcharts-images/drug.png" 半白半黑图片
-
-        public string drugColor { get; set; }        //药的其他颜色-完全未完成、完成	
-
-        public string drugDescription { get; set; }       //用药情况描述 "部分完成；未吃:阿司匹林、青霉素；已吃：钙片、板蓝根"  使用叉勾图标
-
-        public Graph()
-        {
-
-            //血压初始化？
-
-            drugBullet = "";         //初始化  时间肯定有  默认所有任务（生理测量、用药）为不确定状态，不确定是否执行
-            drugValue = "1";
-            drugColor = "#FFFFFF";  //白色
-            drugDescription = "暂无记录";
+            GuideList = new List<Guide>();
         }
     }
 

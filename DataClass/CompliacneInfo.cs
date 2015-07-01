@@ -9,14 +9,19 @@ namespace WebService.DataClass
     {
     }
 
-    public class SignDetail
+    public class SignDetailByP  //高血压体征详细-日期段
     {
-        public string DetailTime { get; set; }           //详细时间 到时分秒
 
-        public string Value { get; set; }        //是否执行 1：执行； 0：未执行
+        public List<SignDetailByD> SignDetailByDs { get; set; }
+
+        public SignDetailByP()
+        {
+            SignDetailByDs = new List<SignDetailByD>();
+        }
+
     }
 
-    public class SignDetailByD
+    public class SignDetailByD  //高血压体征详细-某天
     {
         public string Date { get; set; }        //日期
 
@@ -32,20 +37,30 @@ namespace WebService.DataClass
 
     }
 
-    public class SignDetailByP
+
+    public class SignDetail   //高血压体征详细-到分 
     {
+        public string DetailTime { get; set; }           //详细时间 到时分
 
-        public List<SignDetailByD> SignDetailByDs { get; set; }
+        //血压 "135/78"
+        //public string BPValue { get; set; }
 
-        public SignDetailByP()
+        public string SBPValue { get; set; }        //收缩压
+
+        public string DBPValue { get; set; }        //舒张压
+
+        public string PulseValue { get; set; }        //脉率  "78"
+
+        public SignDetail()
         {
-            SignDetailByDs = new List<SignDetailByD>();
+            SBPValue = "";
+            DBPValue = "";
+            PulseValue = "";
         }
-
     }
 
 
-    //依从情况
+    //任务依从情况
     public class CompliacneDetailByD
     {
 

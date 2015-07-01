@@ -8543,821 +8543,820 @@ namespace WebService
         #endregion
 
         #region 任务完成情况 LS
-
-        [WebMethod(Description = "获取计划完成情况（Pad)-首次进入页面 PlanNo为空  Table:计划、任务、依从..  Author:LS 2015-06-25")]
-        // GetImplementationForPadFirst 获取计划完成情况（Pad）-首次进入页面  LS 2015-06-25 
-        public void GetImplementationForPadFirst(string PatientId, string Module)
-        {
-            ImplementationInfo ImplementationInfo = new ImplementationInfo();
-            string str_result = "";
-            try
-            {
-                string PlanNo = "";
-
-                //病人基本信息-姓名、头像..
-                CacheSysList patientList = PsBasicInfo.GetPatientBasicInfo(_cnCache, PatientId);
-                if (patientList != null)
-                {
-                    ImplementationInfo.PatientInfo.PatientName = patientList[0];
-
-                    CacheSysList BasicInfoDetail = PsBasicInfoDetail.GetDetailInfo(_cnCache, PatientId);
-                    if (BasicInfoDetail != null)
-                    {
-                        if (BasicInfoDetail[6] != null)
-                        {
-                            ImplementationInfo.PatientInfo.ImageUrl = BasicInfoDetail[6].ToString();
-                        }
-                        else
-                        {
-                            ImplementationInfo.PatientInfo.ImageUrl = "";  //js端意外不能识别null
-                        }
-
-                    }
-                }
-
-                //刚进入页面加载计划列表 (始终存在第一条-当前计划）
-                ImplementationInfo.PlanList = PsPlan.GetPlanList34ByM(_cnCache, PatientId, Module);
-
-                PlanNo = ImplementationInfo.PlanList[0].PlanNo; //肯定会存在 
-
-                #region  存在正在执行的计划
-
-                if ((PlanNo != "") && (PlanNo != null))  //存在正在执行的计划
-                {
-                    //剩余天数和进度
-                    InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
-                    PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
-                    if (PRlist != null)
-                    {
-                        ImplementationInfo.RemainingDays = PRlist[0].ToString();
-                        ImplementationInfo.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();
-                    }
-
-                    //正在执行计划的最近一周的依从率
-                    InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
-                    weekPeriod = PsPlan.GetWeekPeriod(_cnCache, ImplementationInfo.PlanList[0].StartDate);
-                    if (weekPeriod != null)
-                    {
-                        ImplementationInfo.CompliacneValue = "最近一周依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1])) + "%";
-                    }
-
-                    //读取任务列表
-                    DataTable TaskList = new DataTable();
-                    TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
-
-                    //测量-血压 （默认显示-收缩压）
-                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
-                    DataRow[] BPRows = TaskList.Select(condition);
-
-                    List<MstBloodPressure> reference = new List<MstBloodPressure>();
-                    chartData chartData = new chartData();
-                    List<Graph> graphList = new List<Graph>();
-                    List<GuideList> BPGuide = new List<GuideList>();
-
-                    if ((BPRows != null) && (BPRows.Length == 2))  //一定会有血压和脉率测量任务
-                    {
-                        //获取血压的分级原则，脉率的分级原则写死
-                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
-
-                        //血压数据
-                        graphList = CmMstBloodPressure.GetBPInfo(_cnCache, PatientId, PlanNo, "Bloodpressure", ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate, reference);
-
-                        //初始值、目标值、分级范围加工
-                        if (graphList.Count > 0)
-                        {
-                            BPGuide = CmMstBloodPressure.GetBPGuide(_cnCache, PlanNo, "Bloodpressure", reference);
-                            chartData.BPGuide = BPGuide;
-                        }
-                    }
-
-
-                    //必有测量任务，其他任务（例如吃药）可能没有
-
-                    //依从情况
-                    List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
-                    TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate);
-                    if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == graphList.Count))
-                    {
-                        for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
-                        {
-                            graphList[rowsCount].drugValue = "1";
-                            graphList[rowsCount].drugBullet = TasksComByPeriod[rowsCount].drugBullet;
-                            graphList[rowsCount].drugColor = TasksComByPeriod[rowsCount].drugColor;
-                            graphList[rowsCount].drugDescription = TasksComByPeriod[rowsCount].Events;
-                        }
-                    }
-
-                    chartData.graphList = graphList;
-                    ImplementationInfo.chartData = chartData;
-                }
-
-                #endregion
-
-                str_result = JSONHelper.ObjectToJson(ImplementationInfo);
-                Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
-                Context.Response.Write(str_result);
-                HttpContext.Current.ApplicationInstance.CompleteRequest();
-                //Context.Response.End();
-                //return ImplementationInfo;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForPadFirst", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                //return null;
-                throw (ex);
-            }
-        }
-
-        [WebMethod(Description = "获取计划完成情况（Pad)-查看往期计划  Table:计划、任务、依从..  Author:LS 2015-03-27")]
-        // GetImplementationForPadSecond 获取计划完成情况（Pad）-查看往期计划  LS 2015-03-27  
-        public void GetImplementationForPadSecond(string PatientId, string PlanNo)
-        {
-            ImplementationInfo ImplementationInfo = new ImplementationInfo();
-            try
-            {
-                //Pad保证PlanNo输入不为空  为空的表示无当前计划，则显示无执行即可，无需连接网络服务
-
-                if ((PlanNo != "") && (PlanNo != null)) //存在正在执行的计划
-                {
-                    //获取计划的相关信息
-                    int planStatus = 0;
-                    int planStartDate = 0;
-                    int planEndDate = 0;
-
-                    InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
-                    planInfo = PsPlan.GetPlanInfo(_cnCache, PlanNo);
-                    if (planInfo != null)
-                    {
-                        planStatus = Convert.ToInt32(planInfo[5]);
-                        planStartDate = Convert.ToInt32(planInfo[2]);
-                        planEndDate = Convert.ToInt32(planInfo[3]);
-                    }
-
-                    if (planStatus == 3) //是正在执行的当前计划
-                    {
-                        //剩余天数和进度
-                        InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
-                        PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
-                        if (PRlist != null)
-                        {
-                            ImplementationInfo.RemainingDays = PRlist[0].ToString();
-                            ImplementationInfo.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();
-                        }
-
-                        //最近一周的依从率
-                        InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
-                        weekPeriod = PsPlan.GetWeekPeriod(_cnCache, planStartDate);
-                        if (weekPeriod != null)
-                        {
-                            ImplementationInfo.CompliacneValue = "最近一周依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1])) + "%";
-                        }
-                    }
-                    else  //已经结束计划
-                    {
-                        ImplementationInfo.RemainingDays = "0";
-                        ImplementationInfo.ProgressRate = "100";
-                        ImplementationInfo.CompliacneValue = "整个计划依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, planStartDate, planEndDate) + "%";
-                    }
-
-                    #region  读取任务执行情况，血压、用药
-
-                    //读取任务
-                    DataTable TaskList = new DataTable();
-                    TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
-
-                    //测量任务-血压  默认显示-收缩压
-                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'";
-                    DataRow[] BPRows = TaskList.Select(condition);
-
-                    List<MstBloodPressure> reference = new List<MstBloodPressure>();
-                    chartData chartData = new chartData();
-                    List<Graph> graphList = new List<Graph>();
-                    List<GuideList> BPGuide = new List<GuideList>();
-
-                    if ((BPRows != null) && (BPRows.Length == 2))
-                    {
-                        //获取分级原则
-                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
-
-                        //血压数据
-                        graphList = CmMstBloodPressure.GetBPInfo(_cnCache, PatientId, PlanNo, "Bloodpressure", planStartDate, planEndDate, reference);
-
-                        //初始值、目标值、分级范围加工
-                        if (graphList.Count > 0)
-                        {
-                            BPGuide = CmMstBloodPressure.GetBPGuide(_cnCache, PlanNo, "Bloodpressure", reference);
-                            chartData.BPGuide = BPGuide;
-                        }
-                    }
-
-
-                    //依从情况
-                    List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
-                    TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, planStartDate, planEndDate);
-                    if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == graphList.Count))
-                    {
-                        for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
-                        {
-                            graphList[rowsCount].drugValue = "1";
-                            graphList[rowsCount].drugBullet = TasksComByPeriod[rowsCount].drugBullet;
-                            graphList[rowsCount].drugColor = TasksComByPeriod[rowsCount].drugColor;
-                            graphList[rowsCount].drugDescription = TasksComByPeriod[rowsCount].Events;
-                        }
-                    }
-
-                    chartData.graphList = graphList;
-                    ImplementationInfo.chartData = chartData;
-                    #endregion
-                }
-
-
-                string str_result = JSONHelper.ObjectToJson(ImplementationInfo);
-                Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
-                Context.Response.Write(str_result);
-                HttpContext.Current.ApplicationInstance.CompleteRequest();
-                //Context.Response.End();
-                //return ImplementationInfo;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForPadSecond", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                //return null;
-                throw (ex);
-            }
-        }
-
-        [WebMethod(Description = "获取计划完成情况（Phone)-查看当前计划近一周的情况  Table:计划、任务、依从..  Author:LS 2015-03-27")]
-        // GetImplementationForPhone 获取计划完成情况（Pad）  LS 2015-03-27  
-        public void GetImplementationForPhone(string PatientId, string Module)
-        {
-            ImplementationPhone ImplementationPhone = new ImplementationPhone();
-            string str_result = "";
-            try
-            {
-                //注释
-                //注释
-                //病人基本信息-头像、姓名.. (由于手机版只针对换换咋用户，基本信息可不用获取
-               // CacheSysList patientList = PsBasicInfo.GetPatientBasicInfo(_cnCache, PatientId);
-                //if (patientList != null)
-                //{
-                    //ImplementationPhone.PatientInfo.PatientName = patientList[0];
-                //}
-
-                int planStartDate = 0;
-                int planEndDate = 0;
-                string PlanNo = "";
-
-                InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
-                planInfo = PsPlan.GetExecutingPlanByM(_cnCache, PatientId, Module);
-                if (planInfo != null)
-                {
-                    PlanNo = planInfo[0].ToString();
-                    planStartDate = Convert.ToInt32(planInfo[2]);
-                    planEndDate = Convert.ToInt32(planInfo[3]);  //未用到
-                }
-
-                if ((PlanNo != "") && (PlanNo != null)) //存在正在执行的计划
-                {
-                    //剩余天数和进度
-                    InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
-                    PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
-                    if (PRlist != null)
-                    {
-                        ImplementationPhone.RemainingDays = PRlist[0].ToString();  //"距离本次计划结束还剩"+PRlist[0]+"天";
-                        ImplementationPhone.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();  //"进度："++"%";
-                    }
-
-                    //最近一周的依从率
-                    InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
-                    weekPeriod = PsPlan.GetWeekPeriod(_cnCache, planStartDate);
-                    if (weekPeriod != null)
-                    {
-                        ImplementationPhone.CompliacneValue = PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]));
-                        ImplementationPhone.StartDate = Convert.ToInt32(weekPeriod[0]);  //用于获取血压的详细数据
-                        ImplementationPhone.EndDate = Convert.ToInt32(weekPeriod[1]);
-                    }
-
-                    #region  读取任务执行情况，血压、用药-最近一周的数据
-
-                    //读取任务  phone版 只显示测量和用药任务
-                    DataTable TaskList = new DataTable();
-                    TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
-
-                    //测试-血压(因为血压分级表的单独存在，决定了可以直接用收缩压/舒张压作为输入
-                    //默认显示 图-收缩压
-                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'";
-                    DataRow[] BPRows = TaskList.Select(condition);
-
-                    List<MstBloodPressure> reference = new List<MstBloodPressure>();
-                    chartData chartData = new chartData();
-                    List<Graph> graphList = new List<Graph>();
-                    List<GuideList> BPGuide = new List<GuideList>();
-                    SignDetailByP SignDetailByP = new SignDetailByP();
-
-                    if ((BPRows != null) && (BPRows.Length == 2))
-                    {
-                        //获取分级原则
-                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
-
-                        //血压数据
-                        graphList = CmMstBloodPressure.GetBPInfo(_cnCache, PatientId, PlanNo, "Bloodpressure", Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]), reference);
-
-                        //初始值、目标值、分级范围加工
-                        if (graphList.Count > 0)
-                        {
-                            BPGuide = CmMstBloodPressure.GetBPGuide(_cnCache, PlanNo, "Bloodpressure", reference);
-                            chartData.BPGuide = BPGuide;
-                        }
-                    }
-
-
-                    //用药情况
-                    #region 用药情况
-
-                    condition = " Type = 'Drug' ";
-                    DataRow[] DrugRows = TaskList.Select(condition);
-                    if ((DrugRows != null) && (DrugRows.Length != 0))
-                    {
-
-                        List<CompliacneDetailByD> DrugComByPeriod = new List<CompliacneDetailByD>();
-                        DrugComByPeriod = PsCompliance.GetDrugComByPeriod(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]));
-                        if ((DrugComByPeriod != null) && (DrugComByPeriod.Count == graphList.Count))
-                        {
-                            for (int rowsCount = 0; rowsCount < DrugComByPeriod.Count; rowsCount++)
-                            {
-                                graphList[rowsCount].drugValue = "1";
-                                graphList[rowsCount].drugBullet = DrugComByPeriod[rowsCount].drugBullet;
-                                graphList[rowsCount].drugColor = DrugComByPeriod[rowsCount].drugColor;
-                                graphList[rowsCount].drugDescription = DrugComByPeriod[rowsCount].Events;
-                            }
-                        }
-                    }
-
-                    else  //没有用药任务
-                    {
-                        for (int m = 0; m < graphList.Count; m++)
-                        {
-                            graphList[m].drugBullet = "";
-                            graphList[m].drugValue = "1";
-                            graphList[m].drugColor = "#FFFFFF";
-                            graphList[m].drugDescription = "无用药任务";
-                        }
-                    }
-                    #region
-                    //    #region
-                    //    //获取本次计划内的用药数据 不同药不同表  一般药不会很多
-                    //    //不同用药情况归化在同一天  表行数是一样多的
-
-                    //    DataSet ds_DrugCompliacneDetails = new DataSet();
-                    //    for (int n = 0; n < DrugRows.Length; n++)
-                    //    {
-                    //        //放在dataset
-                    //        DataTable dt_DrugCompliacneDetail = new DataTable();
-                    //        dt_DrugCompliacneDetail = PsCompliance.GetDrugCompliacneDetailByPeriod(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]), DrugRows[n]["Id"].ToString(), DrugRows[n]["Code"].ToString());
-                    //        ds_DrugCompliacneDetails.Tables.Add(dt_DrugCompliacneDetail);
-                    //    }
-
-                    //    //各药的整合 并和血压数据整合成一份
-                    //    string a = "已吃："; //已吃     
-                    //    int aa = 0;
-                    //    string b = "未吃：";  //未吃  
-                    //    int bb = 0;
-
-                    //    if (ds_DrugCompliacneDetails.Tables[0].Rows.Count == graphList.Count)
-                    //    {
-                    //        for (int rowsCount = 0; rowsCount < ds_DrugCompliacneDetails.Tables[0].Rows.Count; rowsCount++)
-                    //        {
-                    //            string drugResultText = "";
-                    //            //drugResultText = "<b><span style='font-size:14px;'> 用药情况：</span></b><br>";
-
-                    //            for (int tableCount = 0; tableCount < ds_DrugCompliacneDetails.Tables.Count; tableCount++)
-                    //            {
-                    //                if (ds_DrugCompliacneDetails.Tables[tableCount].Rows[rowsCount]["Status"].ToString() == "1")
-                    //                {
-                    //                    a += ds_DrugCompliacneDetails.Tables[tableCount].TableName + "、";
-                    //                    //drugResultText += ds_DrugCompliacneDetails.Tables[tableCount].TableName + "complete  ";
-                    //                    aa++;
-                    //                }
-                    //                else
-                    //                {
-                    //                    //drugResultText += "<b><span style='font-size:14px;color:red;'>" + ds_DrugCompliacneDetails.Tables[tableCount].TableName + "noncomplete  " + "：</span></b>";
-                    //                    b += ds_DrugCompliacneDetails.Tables[tableCount].TableName + "、";
-                    //                    bb++;
-                    //                }
-                    //            }
-
-                    //            //去除尾部、
-                    //            if (a.Substring(a.Length - 1, 1) == "、")
-                    //            {
-                    //                a = a.Remove(a.LastIndexOf("、"));
-                    //            }
-
-                    //            if (b.Substring(b.Length - 1, 1) == "、")
-                    //            {
-                    //                b = b.Remove(b.LastIndexOf("、"));
-                    //            }
-
-                    //            //输出结果
-
-                    //            Graph Graph = new Graph();
-
-                    //            graphList[rowsCount].drugValue = "1";
-                    //            //Graph.drugBullet="";
-                    //            if (aa == 0)  //根本没吃
-                    //            {
-                    //                drugResultText = "完全未吃；";
-                    //                drugResultText += b;
-                    //                graphList[rowsCount].drugColor = "#DADADA";
-                    //            }
-                    //            else if ((aa > 0) && (aa < ds_DrugCompliacneDetails.Tables.Count))  //吃了部分
-                    //            {
-                    //                drugResultText = "部分完成；";
-                    //                drugResultText += b;
-                    //                drugResultText += "；";
-                    //                drugResultText += a;
-
-                    //                graphList[rowsCount].drugBullet = "amcharts-images/drug.png";
-                    //                graphList[rowsCount].drugColor = "";
-                    //            }
-                    //            else   //全吃了
-                    //            {
-                    //                drugResultText = "完成；";
-                    //                drugResultText += a;
-
-                    //                graphList[rowsCount].drugColor = "#777777";
-                    //            }
-
-                    //            graphList[rowsCount].drugDescription = drugResultText;
-
-                    //            a = "吃了："; aa = 0;
-                    //            b = "没吃："; bb = 0;
-                    //        }
-
-                    //    }
-
-                    //}
-                    //    #endregion
-                    #endregion
-
-
-
-
-
-
-
-                    #endregion
-
-                    chartData.graphList = graphList;
-                    #endregion
-
-                    ImplementationPhone.chartData = chartData;
-
-
-
-                }
-
-                str_result = JSONHelper.ObjectToJson(ImplementationPhone);
-                Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
-                Context.Response.Write(str_result);
-                HttpContext.Current.ApplicationInstance.CompleteRequest();
-                //Context.Response.End();
-                //return ImplementationInfo;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForPhone", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                //return null;
-                throw (ex);
-            }
-        }
-
-        [WebMethod(Description = "获取正在执行的计划中，一周内血压（收缩压、舒张压）的数据详细时刻列表-phone  Table:Ps.VitalSigns  Author:LS 2015-04-19")]
-        // GetBPDetailByPeriod 获取正在执行的计划中，一周内血压（收缩压、舒张压）的数据详细时刻列表  LS 2015-03-27
-        public void GetBPDetailByPeriod(string PatientId, string ItemType, int StartDate, int EndDate)
-        {
-            SignDetailByP result = new SignDetailByP();
-
-            try
-            {
-                DataTable sysInfo = new DataTable();
-                sysInfo = PsVitalSigns.GetSignDetailByPeriod(_cnCache, PatientId, "Bloodpressure", "Bloodpressure_1", StartDate, EndDate);
-
-                //舒张压表
-                DataTable diaInfo = new DataTable();
-                diaInfo = PsVitalSigns.GetSignDetailByPeriod(_cnCache, PatientId, "Bloodpressure", "Bloodpressure_2", StartDate, EndDate);
-
-                if ((sysInfo.Rows.Count == diaInfo.Rows.Count) && (sysInfo.Rows.Count > 0))
-                {
-
-                    SignDetail SignDetail = new SignDetail();
-                    SignDetail.DetailTime = sysInfo.Rows[0]["RecordTime"].ToString();
-                    SignDetail.Value = sysInfo.Rows[0]["Value"].ToString() + "/" + diaInfo.Rows[0]["Value"].ToString();
-
-                    SignDetailByD SignDetailByD = new SignDetailByD();
-                    SignDetailByD.Date = sysInfo.Rows[0]["RecordDate"].ToString();
-                    SignDetailByD.WeekDay = PsCompliance.CaculateWeekDay(sysInfo.Rows[0]["RecordDate"].ToString());
-                    SignDetailByD.SignDetailList.Add(SignDetail);
-                    //SignDetailByD.Count++;
-
-                    if (sysInfo.Rows.Count == 1)
-                    {
-                        result.SignDetailByDs.Add(SignDetailByD);
-                    }
-                    else
-                    {
-                        string temp = sysInfo.Rows[0]["RecordDate"].ToString();
-                        for (int rowsCount = 1; rowsCount < sysInfo.Rows.Count; rowsCount++)
-                        {
-                            //2011/01/03-2011/01/09 血压详细记录 单位：mmph
-                            //列表形式  -2011/01/03 星期三 
-                            //08:00 137/95
-                            //09:00 134/78
-                            if (rowsCount != sysInfo.Rows.Count - 1)
-                            {
-                                if (temp == sysInfo.Rows[rowsCount]["RecordDate"].ToString())
-                                {
-                                    SignDetail = new SignDetail();
-                                    SignDetail.DetailTime = sysInfo.Rows[rowsCount]["RecordTime"].ToString();
-                                    SignDetail.Value = sysInfo.Rows[rowsCount]["Value"].ToString() + "/" + diaInfo.Rows[rowsCount]["Value"].ToString();
-                                    SignDetailByD.SignDetailList.Add(SignDetail);
-                                    //SignDetailByD.Count++;
-                                }
-                                else
-                                {
-                                    result.SignDetailByDs.Add(SignDetailByD);
-
-                                    SignDetailByD = new SignDetailByD();
-                                    SignDetailByD.Date = sysInfo.Rows[rowsCount]["RecordDate"].ToString();
-                                    SignDetailByD.WeekDay = PsCompliance.CaculateWeekDay(sysInfo.Rows[rowsCount]["RecordDate"].ToString());
-                                    SignDetail = new SignDetail();
-                                    SignDetail.DetailTime = sysInfo.Rows[rowsCount]["RecordTime"].ToString();
-                                    SignDetail.Value = sysInfo.Rows[rowsCount]["Value"].ToString() + "/" + diaInfo.Rows[rowsCount]["Value"].ToString();
-                                    SignDetailByD.SignDetailList.Add(SignDetail);
-                                    //SignDetailByD.Count++;
-                                    temp = sysInfo.Rows[rowsCount]["RecordDate"].ToString();
-                                }
-                            }
-                            else
-                            {
-                                if (temp == sysInfo.Rows[rowsCount]["RecordDate"].ToString())
-                                {
-                                    SignDetail = new SignDetail();
-                                    SignDetail.DetailTime = sysInfo.Rows[rowsCount]["RecordTime"].ToString();
-                                    SignDetail.Value = sysInfo.Rows[rowsCount]["Value"].ToString() + "/" + diaInfo.Rows[rowsCount]["Value"].ToString();
-                                    SignDetailByD.SignDetailList.Add(SignDetail);
-                                    //SignDetailByD.Count++;
-                                    result.SignDetailByDs.Add(SignDetailByD);
-                                }
-                                else
-                                {
-                                    result.SignDetailByDs.Add(SignDetailByD);
-                                    SignDetailByD = new SignDetailByD();
-                                    SignDetailByD.Date = sysInfo.Rows[rowsCount]["RecordDate"].ToString();
-                                    SignDetailByD.WeekDay = PsCompliance.CaculateWeekDay(sysInfo.Rows[rowsCount]["RecordDate"].ToString());
-                                    SignDetail = new SignDetail();
-                                    SignDetail.DetailTime = sysInfo.Rows[rowsCount]["RecordTime"].ToString();
-                                    SignDetail.Value = sysInfo.Rows[rowsCount]["Value"].ToString() + "/" + diaInfo.Rows[rowsCount]["Value"].ToString();
-                                    SignDetailByD.SignDetailList.Add(SignDetail);
-                                    //SignDetailByD.Count++;
-                                    result.SignDetailByDs.Add(SignDetailByD);
-                                    temp = sysInfo.Rows[rowsCount]["RecordDate"].ToString();
-                                }
-                            }
-
-                        }
-                    }
-                }
-                //return result;
-                string a = JSONHelper.ObjectToJson(result);
-                Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
-                Context.Response.Write(a);
-                Context.Response.End();
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetBPDetailByPeriod", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                //return null;
-                throw (ex);
-            }
-        }
-
-
-        [WebMethod(Description = "获取健康计划完成情况（Web)-任务列表、任务完成情况  Table:计划、任务、依从..  Author:LS 2015-03-27")]
-        // GetImplementationForWeb 获取计划完成情况（Web）  LS 2015-03-27  
-        public ImplementationInfo GetImplementationForWebFirst(string PatientId, string Module)
-        {
-            ImplementationInfo ImplementationInfo = new ImplementationInfo();
-            try
-            {
-                string PlanNo = "";
-
-
-
-                //首次登入页面,加载计划列表 (始终存在第一条-当前计划）
-                ImplementationInfo.PlanList = PsPlan.GetPlanList34ByM(_cnCache, PatientId, Module);
-
-                PlanNo = ImplementationInfo.PlanList[0].PlanNo; //肯定会存在 ImplementationForPad.PlanList[0]
-
-                #region  存在正在执行的计划
-
-                if ((PlanNo != "") && (PlanNo != null))  //存在正在执行的计划
-                {
-                    //剩余天数和进度
-                    InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
-                    PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
-                    if (PRlist != null)
-                    {
-                        ImplementationInfo.RemainingDays = PRlist[0].ToString();  //"距离本次计划结束还剩"+PRlist[0]+"天";
-                        ImplementationInfo.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();  //"进度："++"%";
-                    }
-
-                    //最近一周的依从率
-                    InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
-                    weekPeriod = PsPlan.GetWeekPeriod(_cnCache, ImplementationInfo.PlanList[0].StartDate);
-                    if (weekPeriod != null)
-                    {
-                        ImplementationInfo.CompliacneValue = "最近一周依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1])) + "%";
-                    }
-
-                    //读取任务列表并输出
-                    DataTable TaskList = new DataTable();
-                    TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
-                    ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
-
-
-
-                    //测量-血压 （默认显示-收缩压）
-                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'";
-                    DataRow[] BPRows = TaskList.Select(condition);
-
-                    List<MstBloodPressure> reference = new List<MstBloodPressure>();  //血压风险表-来自数据库
-                    chartData chartData = new chartData();               //数据集
-                    List<Graph> graphList = new List<Graph>();           //图-血压、依从情况
-                    List<GuideList> BPGuide = new List<GuideList>();    //图-血压风险表
-
-                    if ((BPRows != null) && (BPRows.Length == 2))
-                    {
-                        //获取分级原则
-                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
-
-                        //血压数据
-                        graphList = CmMstBloodPressure.GetBPInfo(_cnCache, PatientId, PlanNo, "Bloodpressure", ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate, reference);
-
-                        //初始值、目标值、分级范围加工
-                        if (graphList.Count > 0)
-                        {
-                            BPGuide = CmMstBloodPressure.GetBPGuide(_cnCache, PlanNo, "Bloodpressure", reference);
-                            chartData.BPGuide = BPGuide;
-                        }
-                    }
-
-
-                    //必有测量任务，其他任务（例如吃药）可能没有
-
-                    //依从情况
-                    List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
-                    TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate);
-                    if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == graphList.Count))
-                    {
-                        for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
-                        {
-                            graphList[rowsCount].drugValue = "1";
-                            graphList[rowsCount].drugBullet = TasksComByPeriod[rowsCount].drugBullet;
-                            graphList[rowsCount].drugColor = TasksComByPeriod[rowsCount].drugColor;
-                            graphList[rowsCount].drugDescription = TasksComByPeriod[rowsCount].Events;
-                        }
-                    }
-
-                    chartData.graphList = graphList;
-                    ImplementationInfo.chartData = chartData;
-                }
-
-                #endregion
-
-                return ImplementationInfo;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForWebFirst", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                //return null;
-                throw (ex);
-            }
-        }
-
-
-        [WebMethod(Description = "获取健康计划完成情况（Web)-任务列表、任务完成情况  Table:计划、任务、依从..  Author:LS 2015-03-27")]
-        //GetImplementationForWebSecond 获取计划完成情况（Pad）  LS 2015-03-27  
-        public ImplementationInfo GetImplementationForWebSecond(string PatientId, string PlanNo)
-        {
-            ImplementationInfo ImplementationInfo = new ImplementationInfo();
-            try
-            {
-                //Pad保证PlanNo输入不为空  为空的表示无当前计划，则显示无执行即可，无需连接网络服务
-
-                if ((PlanNo != "") && (PlanNo != null)) //存在正在执行的计划
-                {
-                    //获取计划的相关信息
-                    int planStatus = 0;
-                    int planStartDate = 0;
-                    int planEndDate = 0;
-
-                    InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
-                    planInfo = PsPlan.GetPlanInfo(_cnCache, PlanNo);
-                    if (planInfo != null)
-                    {
-                        planStatus = Convert.ToInt32(planInfo[5]);
-                        planStartDate = Convert.ToInt32(planInfo[2]);
-                        planEndDate = Convert.ToInt32(planInfo[3]);
-                    }
-
-                    if (planStatus == 3) //是正在执行的当前计划
-                    {
-                        //剩余天数和进度
-                        InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
-                        PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
-                        if (PRlist != null)
-                        {
-                            ImplementationInfo.RemainingDays = PRlist[0].ToString();  //"距离本次计划结束还剩"+PRlist[0]+"天";
-                            ImplementationInfo.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();  //"进度："++"%";
-                        }
-
-                        //最近一周的依从率
-                        InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
-                        weekPeriod = PsPlan.GetWeekPeriod(_cnCache, planStartDate);
-                        if (weekPeriod != null)
-                        {
-                            ImplementationInfo.CompliacneValue = "最近一周依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1])) + "%";
-                        }
-                    }
-                    else  //已经结束计划
-                    {
-                        ImplementationInfo.RemainingDays = "0";
-                        ImplementationInfo.ProgressRate = "100";
-                        ImplementationInfo.CompliacneValue = "整个计划依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, planStartDate, planEndDate) + "%";
-                    }
-
-                    #region  读取任务执行情况，血压、用药
-
-                    //读取任务列表并输出
-                    DataTable TaskList = new DataTable();
-                    TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
-                    ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
-
-
-                    //测量任务-血压  默认显示-收缩压
-                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'";
-                    DataRow[] BPRows = TaskList.Select(condition);
-
-                    List<MstBloodPressure> reference = new List<MstBloodPressure>();
-                    chartData chartData = new chartData();
-                    List<Graph> graphList = new List<Graph>();
-                    List<GuideList> BPGuide = new List<GuideList>();
-
-                    if ((BPRows != null) && (BPRows.Length == 2))
-                    {
-                        //获取分级原则
-                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
-
-                        //血压数据
-                        graphList = CmMstBloodPressure.GetBPInfo(_cnCache, PatientId, PlanNo, "Bloodpressure", planStartDate, planEndDate, reference);
-
-                        //初始值、目标值、分级范围加工
-                        if (graphList.Count > 0)
-                        {
-                            BPGuide = CmMstBloodPressure.GetBPGuide(_cnCache, PlanNo, "Bloodpressure", reference);
-                            chartData.BPGuide = BPGuide;
-                        }
-                    }
-
-
-                    //依从情况
-                    List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
-                    TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, planStartDate, planEndDate);
-                    if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == graphList.Count))
-                    {
-                        for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
-                        {
-                            graphList[rowsCount].drugValue = "1";
-                            graphList[rowsCount].drugBullet = TasksComByPeriod[rowsCount].drugBullet;
-                            graphList[rowsCount].drugColor = TasksComByPeriod[rowsCount].drugColor;
-                            graphList[rowsCount].drugDescription = TasksComByPeriod[rowsCount].Events;
-                        }
-                    }
-
-                    chartData.graphList = graphList;
-                    ImplementationInfo.chartData = chartData;
-                    #endregion
-                }
-
-                return ImplementationInfo;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForWebSecond", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                //return null;
-                throw (ex);
-            }
-        }
+        //[WebMethod(Description = "获取计划完成情况（Pad)-首次进入页面 PlanNo为空  Table:计划、任务、依从..  Author:LS 2015-06-25")]
+        //// GetImplementationForPadFirst 获取计划完成情况（Pad）-首次进入页面  LS 2015-06-25 
+        //public void GetImplementationForPadFirst(string PatientId, string Module)
+        //{
+        //    ImplementationInfo ImplementationInfo = new ImplementationInfo();
+        //    string str_result = "";
+        //    try
+        //    {
+        //        string PlanNo = "";
+
+        //        //病人基本信息-姓名、头像..
+        //        CacheSysList patientList = PsBasicInfo.GetPatientBasicInfo(_cnCache, PatientId);
+        //        if (patientList != null)
+        //        {
+        //            ImplementationInfo.PatientInfo.PatientName = patientList[0];
+
+        //            CacheSysList BasicInfoDetail = PsBasicInfoDetail.GetDetailInfo(_cnCache, PatientId);
+        //            if (BasicInfoDetail != null)
+        //            {
+        //                if (BasicInfoDetail[6] != null)
+        //                {
+        //                    ImplementationInfo.PatientInfo.ImageUrl = BasicInfoDetail[6].ToString();
+        //                }
+        //                else
+        //                {
+        //                    ImplementationInfo.PatientInfo.ImageUrl = "";  //js端意外不能识别null
+        //                }
+
+        //            }
+        //        }
+
+        //        //刚进入页面加载计划列表 (始终存在第一条-当前计划）
+        //        ImplementationInfo.PlanList = PsPlan.GetPlanList34ByM(_cnCache, PatientId, Module);
+
+        //        PlanNo = ImplementationInfo.PlanList[0].PlanNo; //肯定会存在 
+
+        //        #region  存在正在执行的计划
+
+        //        if ((PlanNo != "") && (PlanNo != null))  //存在正在执行的计划
+        //        {
+        //            //剩余天数和进度
+        //            InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
+        //            PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
+        //            if (PRlist != null)
+        //            {
+        //                ImplementationInfo.RemainingDays = PRlist[0].ToString();
+        //                ImplementationInfo.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();
+        //            }
+
+        //            //正在执行计划的最近一周的依从率
+        //            InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
+        //            weekPeriod = PsPlan.GetWeekPeriod(_cnCache, ImplementationInfo.PlanList[0].StartDate);
+        //            if (weekPeriod != null)
+        //            {
+        //                ImplementationInfo.CompliacneValue = "最近一周依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1])) + "%";
+        //            }
+
+        //            //读取任务列表
+        //            DataTable TaskList = new DataTable();
+        //            TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
+
+        //            //测量-血压 （默认显示-收缩压）
+        //            string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+        //            DataRow[] BPRows = TaskList.Select(condition);
+
+        //            List<MstBloodPressure> reference = new List<MstBloodPressure>();
+        //            chartData chartData = new chartData();
+        //            List<Graph> graphList = new List<Graph>();
+        //            List<GuideList> BPGuide = new List<GuideList>();
+
+        //            if ((BPRows != null) && (BPRows.Length == 2))  //一定会有血压和脉率测量任务
+        //            {
+        //                //获取血压的分级原则，脉率的分级原则写死
+        //                reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+        //                //血压数据
+        //                graphList = CmMstBloodPressure.GetBPInfo(_cnCache, PatientId, PlanNo, "Bloodpressure", ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate, reference);
+
+        //                //初始值、目标值、分级范围加工
+        //                if (graphList.Count > 0)
+        //                {
+        //                    BPGuide = CmMstBloodPressure.GetBPGuide(_cnCache, PlanNo, "Bloodpressure", reference);
+        //                    chartData.BPGuide = BPGuide;
+        //                }
+        //            }
+
+
+        //            //必有测量任务，其他任务（例如吃药）可能没有
+
+        //            //依从情况
+        //            List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
+        //            TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate);
+        //            if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == graphList.Count))
+        //            {
+        //                for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
+        //                {
+        //                    graphList[rowsCount].drugValue = "1";
+        //                    graphList[rowsCount].drugBullet = TasksComByPeriod[rowsCount].drugBullet;
+        //                    graphList[rowsCount].drugColor = TasksComByPeriod[rowsCount].drugColor;
+        //                    graphList[rowsCount].drugDescription = TasksComByPeriod[rowsCount].Events;
+        //                }
+        //            }
+
+        //            chartData.graphList = graphList;
+        //            ImplementationInfo.chartData = chartData;
+        //        }
+
+        //        #endregion
+
+        //        str_result = JSONHelper.ObjectToJson(ImplementationInfo);
+        //        Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
+        //        Context.Response.Write(str_result);
+        //        HttpContext.Current.ApplicationInstance.CompleteRequest();
+        //        //Context.Response.End();
+        //        //return ImplementationInfo;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForPadFirst", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+        //        //return null;
+        //        throw (ex);
+        //    }
+        //}
+
+        //[WebMethod(Description = "获取计划完成情况（Pad)-查看往期计划  Table:计划、任务、依从..  Author:LS 2015-03-27")]
+        //// GetImplementationForPadSecond 获取计划完成情况（Pad）-查看往期计划  LS 2015-03-27  
+        //public void GetImplementationForPadSecond(string PatientId, string PlanNo)
+        //{
+        //    ImplementationInfo ImplementationInfo = new ImplementationInfo();
+        //    try
+        //    {
+        //        //Pad保证PlanNo输入不为空  为空的表示无当前计划，则显示无执行即可，无需连接网络服务
+
+        //        if ((PlanNo != "") && (PlanNo != null)) //存在正在执行的计划
+        //        {
+        //            //获取计划的相关信息
+        //            int planStatus = 0;
+        //            int planStartDate = 0;
+        //            int planEndDate = 0;
+
+        //            InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
+        //            planInfo = PsPlan.GetPlanInfo(_cnCache, PlanNo);
+        //            if (planInfo != null)
+        //            {
+        //                planStatus = Convert.ToInt32(planInfo[5]);
+        //                planStartDate = Convert.ToInt32(planInfo[2]);
+        //                planEndDate = Convert.ToInt32(planInfo[3]);
+        //            }
+
+        //            if (planStatus == 3) //是正在执行的当前计划
+        //            {
+        //                //剩余天数和进度
+        //                InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
+        //                PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
+        //                if (PRlist != null)
+        //                {
+        //                    ImplementationInfo.RemainingDays = PRlist[0].ToString();
+        //                    ImplementationInfo.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();
+        //                }
+
+        //                //最近一周的依从率
+        //                InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
+        //                weekPeriod = PsPlan.GetWeekPeriod(_cnCache, planStartDate);
+        //                if (weekPeriod != null)
+        //                {
+        //                    ImplementationInfo.CompliacneValue = "最近一周依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1])) + "%";
+        //                }
+        //            }
+        //            else  //已经结束计划
+        //            {
+        //                ImplementationInfo.RemainingDays = "0";
+        //                ImplementationInfo.ProgressRate = "100";
+        //                ImplementationInfo.CompliacneValue = "整个计划依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, planStartDate, planEndDate) + "%";
+        //            }
+
+        //            #region  读取任务执行情况，血压、用药
+
+        //            //读取任务
+        //            DataTable TaskList = new DataTable();
+        //            TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
+
+        //            //测量任务-血压  默认显示-收缩压
+        //            string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'";
+        //            DataRow[] BPRows = TaskList.Select(condition);
+
+        //            List<MstBloodPressure> reference = new List<MstBloodPressure>();
+        //            chartData chartData = new chartData();
+        //            List<Graph> graphList = new List<Graph>();
+        //            List<GuideList> BPGuide = new List<GuideList>();
+
+        //            if ((BPRows != null) && (BPRows.Length == 2))
+        //            {
+        //                //获取分级原则
+        //                reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+        //                //血压数据
+        //                graphList = CmMstBloodPressure.GetBPInfo(_cnCache, PatientId, PlanNo, "Bloodpressure", planStartDate, planEndDate, reference);
+
+        //                //初始值、目标值、分级范围加工
+        //                if (graphList.Count > 0)
+        //                {
+        //                    BPGuide = CmMstBloodPressure.GetBPGuide(_cnCache, PlanNo, "Bloodpressure", reference);
+        //                    chartData.BPGuide = BPGuide;
+        //                }
+        //            }
+
+
+        //            //依从情况
+        //            List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
+        //            TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, planStartDate, planEndDate);
+        //            if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == graphList.Count))
+        //            {
+        //                for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
+        //                {
+        //                    graphList[rowsCount].drugValue = "1";
+        //                    graphList[rowsCount].drugBullet = TasksComByPeriod[rowsCount].drugBullet;
+        //                    graphList[rowsCount].drugColor = TasksComByPeriod[rowsCount].drugColor;
+        //                    graphList[rowsCount].drugDescription = TasksComByPeriod[rowsCount].Events;
+        //                }
+        //            }
+
+        //            chartData.graphList = graphList;
+        //            ImplementationInfo.chartData = chartData;
+        //            #endregion
+        //        }
+
+
+        //        string str_result = JSONHelper.ObjectToJson(ImplementationInfo);
+        //        Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
+        //        Context.Response.Write(str_result);
+        //        HttpContext.Current.ApplicationInstance.CompleteRequest();
+        //        //Context.Response.End();
+        //        //return ImplementationInfo;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForPadSecond", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+        //        //return null;
+        //        throw (ex);
+        //    }
+        //}
+
+        //[WebMethod(Description = "获取计划完成情况（Phone)-查看当前计划近一周的情况  Table:计划、任务、依从..  Author:LS 2015-03-27")]
+        //// GetImplementationForPhone 获取计划完成情况（Pad）  LS 2015-03-27  
+        //public void GetImplementationForPhone(string PatientId, string Module)
+        //{
+        //    ImplementationPhone ImplementationPhone = new ImplementationPhone();
+        //    string str_result = "";
+        //    try
+        //    {
+        //        //注释
+        //        //注释
+        //        //病人基本信息-头像、姓名.. (由于手机版只针对换换咋用户，基本信息可不用获取
+        //       // CacheSysList patientList = PsBasicInfo.GetPatientBasicInfo(_cnCache, PatientId);
+        //        //if (patientList != null)
+        //        //{
+        //            //ImplementationPhone.PatientInfo.PatientName = patientList[0];
+        //        //}
+
+        //        int planStartDate = 0;
+        //        int planEndDate = 0;
+        //        string PlanNo = "";
+
+        //        InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
+        //        planInfo = PsPlan.GetExecutingPlanByM(_cnCache, PatientId, Module);
+        //        if (planInfo != null)
+        //        {
+        //            PlanNo = planInfo[0].ToString();
+        //            planStartDate = Convert.ToInt32(planInfo[2]);
+        //            planEndDate = Convert.ToInt32(planInfo[3]);  //未用到
+        //        }
+
+        //        if ((PlanNo != "") && (PlanNo != null)) //存在正在执行的计划
+        //        {
+        //            //剩余天数和进度
+        //            InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
+        //            PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
+        //            if (PRlist != null)
+        //            {
+        //                ImplementationPhone.RemainingDays = PRlist[0].ToString();  //"距离本次计划结束还剩"+PRlist[0]+"天";
+        //                ImplementationPhone.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();  //"进度："++"%";
+        //            }
+
+        //            //最近一周的依从率
+        //            InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
+        //            weekPeriod = PsPlan.GetWeekPeriod(_cnCache, planStartDate);
+        //            if (weekPeriod != null)
+        //            {
+        //                ImplementationPhone.CompliacneValue = PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]));
+        //                ImplementationPhone.StartDate = Convert.ToInt32(weekPeriod[0]);  //用于获取血压的详细数据
+        //                ImplementationPhone.EndDate = Convert.ToInt32(weekPeriod[1]);
+        //            }
+
+        //            #region  读取任务执行情况，血压、用药-最近一周的数据
+
+        //            //读取任务  phone版 只显示测量和用药任务
+        //            DataTable TaskList = new DataTable();
+        //            TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
+
+        //            //测试-血压(因为血压分级表的单独存在，决定了可以直接用收缩压/舒张压作为输入
+        //            //默认显示 图-收缩压
+        //            string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'";
+        //            DataRow[] BPRows = TaskList.Select(condition);
+
+        //            List<MstBloodPressure> reference = new List<MstBloodPressure>();
+        //            chartData chartData = new chartData();
+        //            List<Graph> graphList = new List<Graph>();
+        //            List<GuideList> BPGuide = new List<GuideList>();
+        //            SignDetailByP SignDetailByP = new SignDetailByP();
+
+        //            if ((BPRows != null) && (BPRows.Length == 2))
+        //            {
+        //                //获取分级原则
+        //                reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+        //                //血压数据
+        //                graphList = CmMstBloodPressure.GetBPInfo(_cnCache, PatientId, PlanNo, "Bloodpressure", Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]), reference);
+
+        //                //初始值、目标值、分级范围加工
+        //                if (graphList.Count > 0)
+        //                {
+        //                    BPGuide = CmMstBloodPressure.GetBPGuide(_cnCache, PlanNo, "Bloodpressure", reference);
+        //                    chartData.BPGuide = BPGuide;
+        //                }
+        //            }
+
+
+        //            //用药情况
+        //            #region 用药情况
+
+        //            condition = " Type = 'Drug' ";
+        //            DataRow[] DrugRows = TaskList.Select(condition);
+        //            if ((DrugRows != null) && (DrugRows.Length != 0))
+        //            {
+
+        //                List<CompliacneDetailByD> DrugComByPeriod = new List<CompliacneDetailByD>();
+        //                DrugComByPeriod = PsCompliance.GetDrugComByPeriod(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]));
+        //                if ((DrugComByPeriod != null) && (DrugComByPeriod.Count == graphList.Count))
+        //                {
+        //                    for (int rowsCount = 0; rowsCount < DrugComByPeriod.Count; rowsCount++)
+        //                    {
+        //                        graphList[rowsCount].drugValue = "1";
+        //                        graphList[rowsCount].drugBullet = DrugComByPeriod[rowsCount].drugBullet;
+        //                        graphList[rowsCount].drugColor = DrugComByPeriod[rowsCount].drugColor;
+        //                        graphList[rowsCount].drugDescription = DrugComByPeriod[rowsCount].Events;
+        //                    }
+        //                }
+        //            }
+
+        //            else  //没有用药任务
+        //            {
+        //                for (int m = 0; m < graphList.Count; m++)
+        //                {
+        //                    graphList[m].drugBullet = "";
+        //                    graphList[m].drugValue = "1";
+        //                    graphList[m].drugColor = "#FFFFFF";
+        //                    graphList[m].drugDescription = "无用药任务";
+        //                }
+        //            }
+        //            #region
+        //            //    #region
+        //            //    //获取本次计划内的用药数据 不同药不同表  一般药不会很多
+        //            //    //不同用药情况归化在同一天  表行数是一样多的
+
+        //            //    DataSet ds_DrugCompliacneDetails = new DataSet();
+        //            //    for (int n = 0; n < DrugRows.Length; n++)
+        //            //    {
+        //            //        //放在dataset
+        //            //        DataTable dt_DrugCompliacneDetail = new DataTable();
+        //            //        dt_DrugCompliacneDetail = PsCompliance.GetDrugCompliacneDetailByPeriod(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]), DrugRows[n]["Id"].ToString(), DrugRows[n]["Code"].ToString());
+        //            //        ds_DrugCompliacneDetails.Tables.Add(dt_DrugCompliacneDetail);
+        //            //    }
+
+        //            //    //各药的整合 并和血压数据整合成一份
+        //            //    string a = "已吃："; //已吃     
+        //            //    int aa = 0;
+        //            //    string b = "未吃：";  //未吃  
+        //            //    int bb = 0;
+
+        //            //    if (ds_DrugCompliacneDetails.Tables[0].Rows.Count == graphList.Count)
+        //            //    {
+        //            //        for (int rowsCount = 0; rowsCount < ds_DrugCompliacneDetails.Tables[0].Rows.Count; rowsCount++)
+        //            //        {
+        //            //            string drugResultText = "";
+        //            //            //drugResultText = "<b><span style='font-size:14px;'> 用药情况：</span></b><br>";
+
+        //            //            for (int tableCount = 0; tableCount < ds_DrugCompliacneDetails.Tables.Count; tableCount++)
+        //            //            {
+        //            //                if (ds_DrugCompliacneDetails.Tables[tableCount].Rows[rowsCount]["Status"].ToString() == "1")
+        //            //                {
+        //            //                    a += ds_DrugCompliacneDetails.Tables[tableCount].TableName + "、";
+        //            //                    //drugResultText += ds_DrugCompliacneDetails.Tables[tableCount].TableName + "complete  ";
+        //            //                    aa++;
+        //            //                }
+        //            //                else
+        //            //                {
+        //            //                    //drugResultText += "<b><span style='font-size:14px;color:red;'>" + ds_DrugCompliacneDetails.Tables[tableCount].TableName + "noncomplete  " + "：</span></b>";
+        //            //                    b += ds_DrugCompliacneDetails.Tables[tableCount].TableName + "、";
+        //            //                    bb++;
+        //            //                }
+        //            //            }
+
+        //            //            //去除尾部、
+        //            //            if (a.Substring(a.Length - 1, 1) == "、")
+        //            //            {
+        //            //                a = a.Remove(a.LastIndexOf("、"));
+        //            //            }
+
+        //            //            if (b.Substring(b.Length - 1, 1) == "、")
+        //            //            {
+        //            //                b = b.Remove(b.LastIndexOf("、"));
+        //            //            }
+
+        //            //            //输出结果
+
+        //            //            Graph Graph = new Graph();
+
+        //            //            graphList[rowsCount].drugValue = "1";
+        //            //            //Graph.drugBullet="";
+        //            //            if (aa == 0)  //根本没吃
+        //            //            {
+        //            //                drugResultText = "完全未吃；";
+        //            //                drugResultText += b;
+        //            //                graphList[rowsCount].drugColor = "#DADADA";
+        //            //            }
+        //            //            else if ((aa > 0) && (aa < ds_DrugCompliacneDetails.Tables.Count))  //吃了部分
+        //            //            {
+        //            //                drugResultText = "部分完成；";
+        //            //                drugResultText += b;
+        //            //                drugResultText += "；";
+        //            //                drugResultText += a;
+
+        //            //                graphList[rowsCount].drugBullet = "amcharts-images/drug.png";
+        //            //                graphList[rowsCount].drugColor = "";
+        //            //            }
+        //            //            else   //全吃了
+        //            //            {
+        //            //                drugResultText = "完成；";
+        //            //                drugResultText += a;
+
+        //            //                graphList[rowsCount].drugColor = "#777777";
+        //            //            }
+
+        //            //            graphList[rowsCount].drugDescription = drugResultText;
+
+        //            //            a = "吃了："; aa = 0;
+        //            //            b = "没吃："; bb = 0;
+        //            //        }
+
+        //            //    }
+
+        //            //}
+        //            //    #endregion
+        //            #endregion
+
+
+
+
+
+
+
+        //            #endregion
+
+        //            chartData.graphList = graphList;
+        //            #endregion
+
+        //            ImplementationPhone.chartData = chartData;
+
+
+
+        //        }
+
+        //        str_result = JSONHelper.ObjectToJson(ImplementationPhone);
+        //        Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
+        //        Context.Response.Write(str_result);
+        //        HttpContext.Current.ApplicationInstance.CompleteRequest();
+        //        //Context.Response.End();
+        //        //return ImplementationInfo;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForPhone", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+        //        //return null;
+        //        throw (ex);
+        //    }
+        //}
+
+        //[WebMethod(Description = "获取正在执行的计划中，一周内血压（收缩压、舒张压）的数据详细时刻列表-phone  Table:Ps.VitalSigns  Author:LS 2015-04-19")]
+        //// GetBPDetailByPeriod 获取正在执行的计划中，一周内血压（收缩压、舒张压）的数据详细时刻列表  LS 2015-03-27
+        //public void GetBPDetailByPeriod(string PatientId, string ItemType, int StartDate, int EndDate)
+        //{
+        //    SignDetailByP result = new SignDetailByP();
+
+        //    try
+        //    {
+        //        DataTable sysInfo = new DataTable();
+        //        sysInfo = PsVitalSigns.GetSignDetailByPeriod(_cnCache, PatientId, "Bloodpressure", "Bloodpressure_1", StartDate, EndDate);
+
+        //        //舒张压表
+        //        DataTable diaInfo = new DataTable();
+        //        diaInfo = PsVitalSigns.GetSignDetailByPeriod(_cnCache, PatientId, "Bloodpressure", "Bloodpressure_2", StartDate, EndDate);
+
+        //        if ((sysInfo.Rows.Count == diaInfo.Rows.Count) && (sysInfo.Rows.Count > 0))
+        //        {
+
+        //            SignDetail SignDetail = new SignDetail();
+        //            SignDetail.DetailTime = sysInfo.Rows[0]["RecordTime"].ToString();
+        //            SignDetail.Value = sysInfo.Rows[0]["Value"].ToString() + "/" + diaInfo.Rows[0]["Value"].ToString();
+
+        //            SignDetailByD SignDetailByD = new SignDetailByD();
+        //            SignDetailByD.Date = sysInfo.Rows[0]["RecordDate"].ToString();
+        //            SignDetailByD.WeekDay = PsCompliance.CaculateWeekDay(sysInfo.Rows[0]["RecordDate"].ToString());
+        //            SignDetailByD.SignDetailList.Add(SignDetail);
+        //            //SignDetailByD.Count++;
+
+        //            if (sysInfo.Rows.Count == 1)
+        //            {
+        //                result.SignDetailByDs.Add(SignDetailByD);
+        //            }
+        //            else
+        //            {
+        //                string temp = sysInfo.Rows[0]["RecordDate"].ToString();
+        //                for (int rowsCount = 1; rowsCount < sysInfo.Rows.Count; rowsCount++)
+        //                {
+        //                    //2011/01/03-2011/01/09 血压详细记录 单位：mmph
+        //                    //列表形式  -2011/01/03 星期三 
+        //                    //08:00 137/95
+        //                    //09:00 134/78
+        //                    if (rowsCount != sysInfo.Rows.Count - 1)
+        //                    {
+        //                        if (temp == sysInfo.Rows[rowsCount]["RecordDate"].ToString())
+        //                        {
+        //                            SignDetail = new SignDetail();
+        //                            SignDetail.DetailTime = sysInfo.Rows[rowsCount]["RecordTime"].ToString();
+        //                            SignDetail.Value = sysInfo.Rows[rowsCount]["Value"].ToString() + "/" + diaInfo.Rows[rowsCount]["Value"].ToString();
+        //                            SignDetailByD.SignDetailList.Add(SignDetail);
+        //                            //SignDetailByD.Count++;
+        //                        }
+        //                        else
+        //                        {
+        //                            result.SignDetailByDs.Add(SignDetailByD);
+
+        //                            SignDetailByD = new SignDetailByD();
+        //                            SignDetailByD.Date = sysInfo.Rows[rowsCount]["RecordDate"].ToString();
+        //                            SignDetailByD.WeekDay = PsCompliance.CaculateWeekDay(sysInfo.Rows[rowsCount]["RecordDate"].ToString());
+        //                            SignDetail = new SignDetail();
+        //                            SignDetail.DetailTime = sysInfo.Rows[rowsCount]["RecordTime"].ToString();
+        //                            SignDetail.Value = sysInfo.Rows[rowsCount]["Value"].ToString() + "/" + diaInfo.Rows[rowsCount]["Value"].ToString();
+        //                            SignDetailByD.SignDetailList.Add(SignDetail);
+        //                            //SignDetailByD.Count++;
+        //                            temp = sysInfo.Rows[rowsCount]["RecordDate"].ToString();
+        //                        }
+        //                    }
+        //                    else
+        //                    {
+        //                        if (temp == sysInfo.Rows[rowsCount]["RecordDate"].ToString())
+        //                        {
+        //                            SignDetail = new SignDetail();
+        //                            SignDetail.DetailTime = sysInfo.Rows[rowsCount]["RecordTime"].ToString();
+        //                            SignDetail.Value = sysInfo.Rows[rowsCount]["Value"].ToString() + "/" + diaInfo.Rows[rowsCount]["Value"].ToString();
+        //                            SignDetailByD.SignDetailList.Add(SignDetail);
+        //                            //SignDetailByD.Count++;
+        //                            result.SignDetailByDs.Add(SignDetailByD);
+        //                        }
+        //                        else
+        //                        {
+        //                            result.SignDetailByDs.Add(SignDetailByD);
+        //                            SignDetailByD = new SignDetailByD();
+        //                            SignDetailByD.Date = sysInfo.Rows[rowsCount]["RecordDate"].ToString();
+        //                            SignDetailByD.WeekDay = PsCompliance.CaculateWeekDay(sysInfo.Rows[rowsCount]["RecordDate"].ToString());
+        //                            SignDetail = new SignDetail();
+        //                            SignDetail.DetailTime = sysInfo.Rows[rowsCount]["RecordTime"].ToString();
+        //                            SignDetail.Value = sysInfo.Rows[rowsCount]["Value"].ToString() + "/" + diaInfo.Rows[rowsCount]["Value"].ToString();
+        //                            SignDetailByD.SignDetailList.Add(SignDetail);
+        //                            //SignDetailByD.Count++;
+        //                            result.SignDetailByDs.Add(SignDetailByD);
+        //                            temp = sysInfo.Rows[rowsCount]["RecordDate"].ToString();
+        //                        }
+        //                    }
+
+        //                }
+        //            }
+        //        }
+        //        //return result;
+        //        string a = JSONHelper.ObjectToJson(result);
+        //        Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
+        //        Context.Response.Write(a);
+        //        Context.Response.End();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetBPDetailByPeriod", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+        //        //return null;
+        //        throw (ex);
+        //    }
+        //}
+
+
+        //[WebMethod(Description = "获取健康计划完成情况（Web)-任务列表、任务完成情况  Table:计划、任务、依从..  Author:LS 2015-03-27")]
+        //// GetImplementationForWeb 获取计划完成情况（Web）  LS 2015-03-27  
+        //public ImplementationInfo GetImplementationForWebFirst(string PatientId, string Module)
+        //{
+        //    ImplementationInfo ImplementationInfo = new ImplementationInfo();
+        //    try
+        //    {
+        //        string PlanNo = "";
+
+
+
+        //        //首次登入页面,加载计划列表 (始终存在第一条-当前计划）
+        //        ImplementationInfo.PlanList = PsPlan.GetPlanList34ByM(_cnCache, PatientId, Module);
+
+        //        PlanNo = ImplementationInfo.PlanList[0].PlanNo; //肯定会存在 ImplementationForPad.PlanList[0]
+
+        //        #region  存在正在执行的计划
+
+        //        if ((PlanNo != "") && (PlanNo != null))  //存在正在执行的计划
+        //        {
+        //            //剩余天数和进度
+        //            InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
+        //            PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
+        //            if (PRlist != null)
+        //            {
+        //                ImplementationInfo.RemainingDays = PRlist[0].ToString();  //"距离本次计划结束还剩"+PRlist[0]+"天";
+        //                ImplementationInfo.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();  //"进度："++"%";
+        //            }
+
+        //            //最近一周的依从率
+        //            InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
+        //            weekPeriod = PsPlan.GetWeekPeriod(_cnCache, ImplementationInfo.PlanList[0].StartDate);
+        //            if (weekPeriod != null)
+        //            {
+        //                ImplementationInfo.CompliacneValue = "最近一周依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1])) + "%";
+        //            }
+
+        //            //读取任务列表并输出
+        //            DataTable TaskList = new DataTable();
+        //            TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
+        //            ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
+
+
+
+        //            //测量-血压 （默认显示-收缩压）
+        //            string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'";
+        //            DataRow[] BPRows = TaskList.Select(condition);
+
+        //            List<MstBloodPressure> reference = new List<MstBloodPressure>();  //血压风险表-来自数据库
+        //            chartData chartData = new chartData();               //数据集
+        //            List<Graph> graphList = new List<Graph>();           //图-血压、依从情况
+        //            List<GuideList> BPGuide = new List<GuideList>();    //图-血压风险表
+
+        //            if ((BPRows != null) && (BPRows.Length == 2))
+        //            {
+        //                //获取分级原则
+        //                reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+        //                //血压数据
+        //                graphList = CmMstBloodPressure.GetBPInfo(_cnCache, PatientId, PlanNo, "Bloodpressure", ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate, reference);
+
+        //                //初始值、目标值、分级范围加工
+        //                if (graphList.Count > 0)
+        //                {
+        //                    BPGuide = CmMstBloodPressure.GetBPGuide(_cnCache, PlanNo, "Bloodpressure", reference);
+        //                    chartData.BPGuide = BPGuide;
+        //                }
+        //            }
+
+
+        //            //必有测量任务，其他任务（例如吃药）可能没有
+
+        //            //依从情况
+        //            List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
+        //            TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate);
+        //            if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == graphList.Count))
+        //            {
+        //                for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
+        //                {
+        //                    graphList[rowsCount].drugValue = "1";
+        //                    graphList[rowsCount].drugBullet = TasksComByPeriod[rowsCount].drugBullet;
+        //                    graphList[rowsCount].drugColor = TasksComByPeriod[rowsCount].drugColor;
+        //                    graphList[rowsCount].drugDescription = TasksComByPeriod[rowsCount].Events;
+        //                }
+        //            }
+
+        //            chartData.graphList = graphList;
+        //            ImplementationInfo.chartData = chartData;
+        //        }
+
+        //        #endregion
+
+        //        return ImplementationInfo;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForWebFirst", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+        //        //return null;
+        //        throw (ex);
+        //    }
+        //}
+
+
+        //[WebMethod(Description = "获取健康计划完成情况（Web)-任务列表、任务完成情况  Table:计划、任务、依从..  Author:LS 2015-03-27")]
+        ////GetImplementationForWebSecond 获取计划完成情况（Pad）  LS 2015-03-27  
+        //public ImplementationInfo GetImplementationForWebSecond(string PatientId, string PlanNo)
+        //{
+        //    ImplementationInfo ImplementationInfo = new ImplementationInfo();
+        //    try
+        //    {
+        //        //Pad保证PlanNo输入不为空  为空的表示无当前计划，则显示无执行即可，无需连接网络服务
+
+        //        if ((PlanNo != "") && (PlanNo != null)) //存在正在执行的计划
+        //        {
+        //            //获取计划的相关信息
+        //            int planStatus = 0;
+        //            int planStartDate = 0;
+        //            int planEndDate = 0;
+
+        //            InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
+        //            planInfo = PsPlan.GetPlanInfo(_cnCache, PlanNo);
+        //            if (planInfo != null)
+        //            {
+        //                planStatus = Convert.ToInt32(planInfo[5]);
+        //                planStartDate = Convert.ToInt32(planInfo[2]);
+        //                planEndDate = Convert.ToInt32(planInfo[3]);
+        //            }
+
+        //            if (planStatus == 3) //是正在执行的当前计划
+        //            {
+        //                //剩余天数和进度
+        //                InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
+        //                PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
+        //                if (PRlist != null)
+        //                {
+        //                    ImplementationInfo.RemainingDays = PRlist[0].ToString();  //"距离本次计划结束还剩"+PRlist[0]+"天";
+        //                    ImplementationInfo.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();  //"进度："++"%";
+        //                }
+
+        //                //最近一周的依从率
+        //                InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
+        //                weekPeriod = PsPlan.GetWeekPeriod(_cnCache, planStartDate);
+        //                if (weekPeriod != null)
+        //                {
+        //                    ImplementationInfo.CompliacneValue = "最近一周依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1])) + "%";
+        //                }
+        //            }
+        //            else  //已经结束计划
+        //            {
+        //                ImplementationInfo.RemainingDays = "0";
+        //                ImplementationInfo.ProgressRate = "100";
+        //                ImplementationInfo.CompliacneValue = "整个计划依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, planStartDate, planEndDate) + "%";
+        //            }
+
+        //            #region  读取任务执行情况，血压、用药
+
+        //            //读取任务列表并输出
+        //            DataTable TaskList = new DataTable();
+        //            TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
+        //            ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
+
+
+        //            //测量任务-血压  默认显示-收缩压
+        //            string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'";
+        //            DataRow[] BPRows = TaskList.Select(condition);
+
+        //            List<MstBloodPressure> reference = new List<MstBloodPressure>();
+        //            chartData chartData = new chartData();
+        //            List<Graph> graphList = new List<Graph>();
+        //            List<GuideList> BPGuide = new List<GuideList>();
+
+        //            if ((BPRows != null) && (BPRows.Length == 2))
+        //            {
+        //                //获取分级原则
+        //                reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+        //                //血压数据
+        //                graphList = CmMstBloodPressure.GetBPInfo(_cnCache, PatientId, PlanNo, "Bloodpressure", planStartDate, planEndDate, reference);
+
+        //                //初始值、目标值、分级范围加工
+        //                if (graphList.Count > 0)
+        //                {
+        //                    BPGuide = CmMstBloodPressure.GetBPGuide(_cnCache, PlanNo, "Bloodpressure", reference);
+        //                    chartData.BPGuide = BPGuide;
+        //                }
+        //            }
+
+
+        //            //依从情况
+        //            List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
+        //            TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, planStartDate, planEndDate);
+        //            if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == graphList.Count))
+        //            {
+        //                for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
+        //                {
+        //                    graphList[rowsCount].drugValue = "1";
+        //                    graphList[rowsCount].drugBullet = TasksComByPeriod[rowsCount].drugBullet;
+        //                    graphList[rowsCount].drugColor = TasksComByPeriod[rowsCount].drugColor;
+        //                    graphList[rowsCount].drugDescription = TasksComByPeriod[rowsCount].Events;
+        //                }
+        //            }
+
+        //            chartData.graphList = graphList;
+        //            ImplementationInfo.chartData = chartData;
+        //            #endregion
+        //        }
+
+        //        return ImplementationInfo;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForWebSecond", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+        //        //return null;
+        //        throw (ex);
+        //    }
+        //}
         #endregion
 
         #region "任务一览 YDS"
@@ -10539,6 +10538,1255 @@ namespace WebService
                 return ex.Message;
             }
         }
+        #endregion
+
+        #region 任务完成情况（新） LS
+
+        [WebMethod(Description = "获取计划完成情况（Pad)-首次进入页面 PlanNo为空  Table:计划、任务、依从..  Author:LS 2015-06-25")]
+        // GetImplementationForPadFirst 获取计划完成情况（Pad）-首次进入页面  LS 2015-06-25 
+        public void GetImplementationForPadFirst(string PatientId, string Module)
+        {
+            ImplementationInfo ImplementationInfo = new ImplementationInfo();
+            string str_result = "";  //最终的输出-ImplementationInfo转化成json格式
+            try
+            {
+                string PlanNo = "";
+
+                //病人基本信息-姓名、头像..
+                CacheSysList patientList = PsBasicInfo.GetPatientBasicInfo(_cnCache, PatientId);
+                if (patientList != null)
+                {
+                    ImplementationInfo.PatientInfo.PatientName = patientList[0];
+
+                    CacheSysList BasicInfoDetail = PsBasicInfoDetail.GetDetailInfo(_cnCache, PatientId);
+                    if (BasicInfoDetail != null)
+                    {
+                        if (BasicInfoDetail[6] != null)
+                        {
+                            ImplementationInfo.PatientInfo.ImageUrl = BasicInfoDetail[6].ToString();
+                        }
+                        else
+                        {
+                            ImplementationInfo.PatientInfo.ImageUrl = "";  //js端意外不能识别null
+                        }
+
+                    }
+                }
+
+                //刚进入页面加载计划列表 (始终存在第一条-当前计划）
+                ImplementationInfo.PlanList = PsPlan.GetPlanList34ByM(_cnCache, PatientId, Module);
+
+                PlanNo = ImplementationInfo.PlanList[0].PlanNo; //肯定会存在 
+
+                #region  存在正在执行的计划
+
+                if ((PlanNo != "") && (PlanNo != null))  //存在正在执行的计划
+                {
+                    //剩余天数和进度
+                    InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
+                    PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
+                    if (PRlist != null)
+                    {
+                        ImplementationInfo.RemainingDays = PRlist[0].ToString();
+                        ImplementationInfo.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();
+
+                        ImplementationInfo.StartDate = ImplementationInfo.PlanList[0].StartDate;
+                        ImplementationInfo.EndDate = ImplementationInfo.PlanList[0].EndDate;
+                    }
+
+                    //正在执行计划的最近一周的依从率
+                    InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
+                    weekPeriod = PsPlan.GetWeekPeriod(_cnCache, ImplementationInfo.PlanList[0].StartDate);
+                    if (weekPeriod != null)
+                    {
+
+                        ImplementationInfo.CompliacneValue = "最近一周依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1])) + "%";
+                    }
+
+                    //读取任务列表
+                    DataTable TaskList = new DataTable();
+                    TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
+                    //ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
+
+                    //测量-血压、脉率 （默认显示-收缩压）  应该保证测量任务 血压血压、脉率都有  因为后面的代码有三个数据的合成  考虑将血压和脉率分开
+                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                    DataRow[] VitalSignRows = TaskList.Select(condition);
+
+                    List<MstBloodPressure> reference = new List<MstBloodPressure>();
+                    ChartData ChartData = new ChartData();
+                    List<Graph> GraphList = new List<Graph>();
+                    GraphGuide GraphGuide = new GraphGuide();
+
+                    if ((VitalSignRows != null) && (VitalSignRows.Length == 3))  //一定会有血压和脉率测量任务   记得改回来..
+                    {
+                        //获取血压的分级规则，脉率的分级原则写死在webservice
+                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+                        //首次进入，默认加载收缩压
+                        GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate, reference);
+                        //GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", ImplementationInfo.StartDate, ImplementationInfo.EndDate, reference);
+
+                        //初始值、目标值、分级规则加工
+                        if (GraphList.Count > 0)
+                        {
+                            GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure_1", reference);
+                            ChartData.GraphGuide = GraphGuide;
+                        }
+                    }
+
+
+                    //必有测量任务，其他任务（例如吃药）可能没有
+
+                    //其他任务依从情况
+                    List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
+                    //是否有其他任务
+                    //string condition1 = " Type not in ('VitalSign,')";
+                    if (TaskList.Rows.Count == VitalSignRows.Length)
+                    {
+                        ChartData.OtherTasks = "0";
+                    }
+                    else
+                    {
+                        ChartData.OtherTasks = "1";
+                        TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate);
+                        if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
+                        {
+                            for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
+                            {
+                                GraphList[rowsCount].DrugValue = "1";   //已经初始化过
+                                GraphList[rowsCount].DrugBullet = TasksComByPeriod[rowsCount].drugBullet;
+                                GraphList[rowsCount].DrugColor = TasksComByPeriod[rowsCount].drugColor;
+                                GraphList[rowsCount].DrugDescription = TasksComByPeriod[rowsCount].Events;//+ "<br><a onclick= shuang shuang zz(); shuang shuang;>详细</a>"
+                            }
+                        }
+                    }
+
+                    ChartData.GraphList = GraphList;
+                    ImplementationInfo.ChartData = ChartData;
+                }
+
+                #endregion
+
+                str_result = JSONHelper.ObjectToJson(ImplementationInfo);
+                Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
+                Context.Response.Write(str_result);
+                HttpContext.Current.ApplicationInstance.CompleteRequest();
+                //Context.Response.End();
+                //return ImplementationInfo;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForPadFirst", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                //return null;
+                throw (ex);
+            }
+        }
+
+        [WebMethod(Description = "获取计划完成情况（Pad)-查看往期计划  Table:计划、任务、依从..  Author:LS 2015-03-27")]
+        // GetImplementationForPadSecond 获取计划完成情况（Pad）-查看往期计划  LS 2015-03-27  
+        public void GetImplementationForPadSecond(string PatientId, string PlanNo)
+        {
+            ImplementationInfo ImplementationInfo = new ImplementationInfo();
+            string str_result = "";
+
+            try
+            {
+                //Pad保证PlanNo输入不为空  为空的表示无当前计划，则显示无执行即可，无需连接网络服务
+
+                if ((PlanNo != "") && (PlanNo != null)) //存在正在执行的计划
+                {
+                    //获取计划的相关信息
+                    int planStatus = 0;
+
+                    InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
+                    planInfo = PsPlan.GetPlanInfo(_cnCache, PlanNo);
+                    if (planInfo != null)
+                    {
+                        planStatus = Convert.ToInt32(planInfo[5]);
+
+                        ImplementationInfo.StartDate = Convert.ToInt32(planInfo[2]);
+                        ImplementationInfo.EndDate = Convert.ToInt32(planInfo[3]);
+
+                    }
+
+                    if (planStatus == 3) //是正在执行的当前计划
+                    {
+                        //剩余天数和进度
+                        InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
+                        PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
+                        if (PRlist != null)
+                        {
+                            ImplementationInfo.RemainingDays = PRlist[0].ToString();
+                            ImplementationInfo.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();
+
+                        }
+
+                        //最近一周的依从率
+                        InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
+                        weekPeriod = PsPlan.GetWeekPeriod(_cnCache, ImplementationInfo.StartDate);
+                        if (weekPeriod != null)
+                        {
+                            ImplementationInfo.CompliacneValue = "最近一周依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1])) + "%";
+                        }
+                    }
+                    else  //已经结束计划
+                    {
+                        ImplementationInfo.RemainingDays = "0";
+                        ImplementationInfo.ProgressRate = "100";
+                        ImplementationInfo.CompliacneValue = "整个计划依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, ImplementationInfo.StartDate, ImplementationInfo.EndDate) + "%";
+                    }
+
+                    #region  读取任务执行情况，体征、用药等
+
+                    //读取任务列表
+                    DataTable TaskList = new DataTable();
+                    TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
+                    //ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
+
+                    //测量-血压、脉率 （默认显示-收缩压）
+                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2' or  Code = 'Pulserate|Pulserate_1'";
+                    DataRow[] VitalSignRows = TaskList.Select(condition);
+
+                    List<MstBloodPressure> reference = new List<MstBloodPressure>();
+                    ChartData ChartData = new ChartData();
+                    List<Graph> GraphList = new List<Graph>();
+                    GraphGuide GraphGuide = new GraphGuide();
+
+                    if ((VitalSignRows != null) && (VitalSignRows.Length == 3))  //一定会有血压和脉率测量任务  记得改回来..
+                    {
+                        //获取血压的分级规则，脉率的分级原则写死在webservice
+                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+                        //首次进入，默认加载收缩压
+                        GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", ImplementationInfo.StartDate, ImplementationInfo.EndDate, reference);
+
+                        //初始值、目标值、分级规则加工
+                        if (GraphList.Count > 0)
+                        {
+                            GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure_1", reference);
+                            ChartData.GraphGuide = GraphGuide;
+                        }
+                    }
+
+
+                    //必有测量任务，其他任务（例如吃药）可能没有
+
+                    //其他任务依从情况
+                    List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
+                    //是否有其他任务
+                    //string condition1 = " Type not in ('VitalSign,')";
+                    if (TaskList.Rows.Count == VitalSignRows.Length)
+                    {
+                        ChartData.OtherTasks = "0";
+                    }
+                    else
+                    {
+                        ChartData.OtherTasks = "1";
+                        TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.StartDate, ImplementationInfo.EndDate);
+                        if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
+                        {
+                            for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
+                            {
+                                GraphList[rowsCount].DrugValue = "1";
+                                GraphList[rowsCount].DrugBullet = TasksComByPeriod[rowsCount].drugBullet;
+                                GraphList[rowsCount].DrugColor = TasksComByPeriod[rowsCount].drugColor;
+                                GraphList[rowsCount].DrugDescription = TasksComByPeriod[rowsCount].Events;
+                            }
+                        }
+                    }
+
+                    ChartData.GraphList = GraphList;
+                    ImplementationInfo.ChartData = ChartData;
+
+                    #endregion
+                }
+
+                str_result = JSONHelper.ObjectToJson(ImplementationInfo);
+                Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
+                Context.Response.Write(str_result);
+                HttpContext.Current.ApplicationInstance.CompleteRequest();
+                //Context.Response.End();
+                //return ImplementationInfo;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForPadSecond", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                //return null;
+                throw (ex);
+            }
+        }
+
+
+        [WebMethod(Description = "获取某体征的数据和画图信息  Table:Ps.VitalSigns  Author:LS 2015-06-29")]
+        // GetSignInfoByCode 获取某体征的数据和画图信息（收缩压、舒张压、脉率）  LS 2015-06-29  Pad和Phone都要用
+        //关于输入 StartDate，EndDate  Pad首次没有拿出StartDate，EndDate    Phone拿出了 这样规划比较好
+        public void GetSignInfoByCode(string PatientId, string PlanNo, string ItemCode, int StartDate, int EndDate)
+        {
+            ChartData ChartData = new ChartData();
+            List<Graph> GraphList = new List<Graph>();
+            GraphGuide GraphGuide = new GraphGuide();
+            List<MstBloodPressure> reference = new List<MstBloodPressure>();
+
+            try
+            {
+                if (ItemCode == "Pulserate_1")
+                {
+                    GraphList = CmMstBloodPressure.GetSignInfoByPulse(_cnCache, PatientId, PlanNo, ItemCode, StartDate, EndDate);
+
+                    //分级规则加工  脉率没有 初始值和目标值
+                    if (GraphList.Count > 0)
+                    {
+                        GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, ItemCode, reference);
+                        ChartData.GraphGuide = GraphGuide;
+                    }
+                }
+                else
+                {
+
+                    reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+                    GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, ItemCode, StartDate, EndDate, reference);
+
+                    //初始值、目标值、分级规则加工
+                    if (GraphList.Count > 0)
+                    {
+                        GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, ItemCode, reference);
+                        ChartData.GraphGuide = GraphGuide;
+                    }
+                }
+
+                //读取任务列表
+                DataTable TaskList = new DataTable();
+                TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
+                //ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
+
+                //测量-血压、脉率 （默认显示-收缩压）  应该保证测量任务 血压血压、脉率都有  因为后面的代码有三个数据的合成  考虑将血压和脉率分开
+                string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                DataRow[] VitalSignRows = TaskList.Select(condition);
+                //必有测量任务，其他任务（例如吃药）可能没有
+
+                //其他任务依从情况
+                List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
+                //是否有其他任务
+                //string condition1 = " Type not in ('VitalSign,')";
+                if (TaskList.Rows.Count == VitalSignRows.Length)
+                {
+                    ChartData.OtherTasks = "0";
+                }
+                else
+                {
+                    ChartData.OtherTasks = "1";
+                    TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, StartDate, EndDate);
+                    if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
+                    {
+                        for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
+                        {
+                            GraphList[rowsCount].DrugValue = "1";   //已经初始化过
+                            GraphList[rowsCount].DrugBullet = TasksComByPeriod[rowsCount].drugBullet;
+                            GraphList[rowsCount].DrugColor = TasksComByPeriod[rowsCount].drugColor;
+                            GraphList[rowsCount].DrugDescription = TasksComByPeriod[rowsCount].Events;
+                        }
+                    }
+                }
+                ChartData.GraphList = GraphList;
+
+
+                //return result;
+                string a = JSONHelper.ObjectToJson(ChartData);
+                Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
+                Context.Response.Write(a);
+                HttpContext.Current.ApplicationInstance.CompleteRequest();
+                //Context.Response.End();
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetSignInfoByCode", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                //return null;
+                throw (ex);
+            }
+        }
+
+        //Pad和Phone区别 后者只看最近七天的  只显示用药的依从情况  暂时不用
+        [WebMethod(Description = "获取计划完成情况（Phone)-查看当前计划近一周的情况  Table:计划、任务、依从..  Author:LS 2015-03-27")]
+        // GetImplementationForPhone 获取计划完成情况（Pad）  LS 2015-06-29  
+        public void GetImplementationForPhone1(string PatientId, string Module)
+        {
+            ImplementationPhone ImplementationPhone = new ImplementationPhone();
+            string str_result = "";
+            try
+            {
+                //病人基本信息-头像、姓名.. (由于手机版只针对换换咋用户，基本信息可不用获取
+                // CacheSysList patientList = PsBasicInfo.GetPatientBasicInfo(_cnCache, PatientId);
+                //if (patientList != null)
+                //{
+                //ImplementationPhone.PatientInfo.PatientName = patientList[0];
+                //}
+
+                int planStartDate = 0;
+                int planEndDate = 0;
+                string PlanNo = "";
+
+                InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
+                planInfo = PsPlan.GetExecutingPlanByM(_cnCache, PatientId, Module);
+                if (planInfo != null)
+                {
+                    PlanNo = planInfo[0].ToString();
+                    planStartDate = Convert.ToInt32(planInfo[2]);
+                    planEndDate = Convert.ToInt32(planInfo[3]);  //未用到
+                }
+
+                if ((PlanNo != "") && (PlanNo != null)) //存在正在执行的计划
+                {
+                    //剩余天数和进度
+                    InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
+                    PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
+                    if (PRlist != null)
+                    {
+                        ImplementationPhone.RemainingDays = PRlist[0].ToString();  //"距离本次计划结束还剩"+PRlist[0]+"天";
+                        ImplementationPhone.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();  //"进度："++"%";
+                    }
+
+                    //最近一周的依从率
+                    InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
+                    weekPeriod = PsPlan.GetWeekPeriod(_cnCache, planStartDate);
+                    if (weekPeriod != null)
+                    {
+                        ImplementationPhone.CompliacneValue = PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]));
+                        ImplementationPhone.StartDate = Convert.ToInt32(weekPeriod[0]);  //用于获取血压的详细数据
+                        ImplementationPhone.EndDate = Convert.ToInt32(weekPeriod[1]);
+                    }
+
+                    #region  读取任务执行情况，血压、用药-最近一周的数据
+
+                    //读取任务  phone版 只显示测量和用药任务
+                    DataTable TaskList = new DataTable();
+                    TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
+
+                    //测量-血压、脉率 （默认显示-收缩压）
+                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                    DataRow[] BPRows = TaskList.Select(condition);
+
+                    List<MstBloodPressure> reference = new List<MstBloodPressure>();
+                    ChartData ChartData = new ChartData();
+                    List<Graph> GraphList = new List<Graph>();
+                    GraphGuide GraphGuide = new GraphGuide();
+
+                    if ((BPRows != null) && (BPRows.Length == 3))  //一定会有血压和脉率测量任务  
+                    {
+                        //获取血压的分级规则，脉率的分级原则写死在webservice
+                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+                        //首次进入，默认加载收缩压
+                        GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]), reference);
+
+                        //初始值、目标值、分级规则加工
+                        if (GraphList.Count > 0)
+                        {
+                            GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure_1", reference);
+                            ChartData.GraphGuide = GraphGuide;
+                        }
+                    }
+
+                    //用药情况
+                    #region 用药情况
+
+                    condition = " Type = 'Drug' ";
+                    DataRow[] DrugRows = TaskList.Select(condition);
+                    if ((DrugRows != null) && (DrugRows.Length != 0))
+                    {
+
+                        List<CompliacneDetailByD> DrugComByPeriod = new List<CompliacneDetailByD>();
+                        DrugComByPeriod = PsCompliance.GetDrugComByPeriod(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]));
+                        if ((DrugComByPeriod != null) && (DrugComByPeriod.Count == GraphList.Count))
+                        {
+                            for (int rowsCount = 0; rowsCount < DrugComByPeriod.Count; rowsCount++)
+                            {
+                                //GraphList[rowsCount].DrugValue = "1";
+                                GraphList[rowsCount].DrugBullet = DrugComByPeriod[rowsCount].drugBullet;
+                                GraphList[rowsCount].DrugColor = DrugComByPeriod[rowsCount].drugColor;
+                                GraphList[rowsCount].DrugDescription = DrugComByPeriod[rowsCount].Events;
+                            }
+                        }
+                    }
+
+                    else  //没有用药任务  下图不显示即可
+                    {
+                        for (int m = 0; m < GraphList.Count; m++)
+                        {
+                            GraphList[m].DrugValue = "";
+                            GraphList[m].DrugBullet = "";
+                            GraphList[m].DrugColor = "#FFFFFF";
+                            GraphList[m].DrugDescription = "无用药任务";
+                        }
+                    }
+
+                    #endregion
+
+                    #endregion
+
+                    ChartData.GraphList = GraphList;
+                    ImplementationPhone.ChartData = ChartData;
+
+
+
+                }
+
+                str_result = JSONHelper.ObjectToJson(ImplementationPhone);
+                Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
+                Context.Response.Write(str_result);
+                HttpContext.Current.ApplicationInstance.CompleteRequest();
+                //Context.Response.End();
+                //return ImplementationInfo;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForPhone", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                //return null;
+                throw (ex);
+            }
+        }
+
+        //Pad和Phone区别 后者只看最近七天的  其他任务的依从情况也行
+        [WebMethod(Description = "获取计划完成情况（Phone)-查看当前计划近一周的情况  Table:计划、任务、依从..  Author:LS 2015-03-27")]
+        // GetImplementationForPhone 获取计划完成情况（Pad）  LS 2015-06-29  
+        public void GetImplementationForPhone(string PatientId, string Module)
+        {
+            ImplementationPhone ImplementationPhone = new ImplementationPhone();
+            string str_result = "";
+            try
+            {
+                //病人基本信息-头像、姓名.. (由于手机版只针对换换咋用户，基本信息可不用获取
+                // CacheSysList patientList = PsBasicInfo.GetPatientBasicInfo(_cnCache, PatientId);
+                //if (patientList != null)
+                //{
+                //ImplementationPhone.PatientInfo.PatientName = patientList[0];
+                //}
+
+                int planStartDate = 0;
+                int planEndDate = 0;
+                string PlanNo = "";
+
+                InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
+                planInfo = PsPlan.GetExecutingPlanByM(_cnCache, PatientId, Module);
+                if (planInfo != null)
+                {
+                    PlanNo = planInfo[0].ToString();
+                    planStartDate = Convert.ToInt32(planInfo[2]);
+                    planEndDate = Convert.ToInt32(planInfo[3]);  //未用到
+                }
+
+                if ((PlanNo != "") && (PlanNo != null)) //存在正在执行的计划
+                {
+                    ImplementationPhone.NowPlanNo = PlanNo;
+
+                    //剩余天数和进度
+                    InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
+                    PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
+                    if (PRlist != null)
+                    {
+                        ImplementationPhone.RemainingDays = PRlist[0].ToString();  //"距离本次计划结束还剩"+PRlist[0]+"天";
+                        ImplementationPhone.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();  //"进度："++"%";
+                    }
+
+                    //最近一周的依从率
+                    InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
+                    weekPeriod = PsPlan.GetWeekPeriod(_cnCache, planStartDate);
+                    if (weekPeriod != null)
+                    {
+                        ImplementationPhone.CompliacneValue = PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]));
+                        ImplementationPhone.StartDate = Convert.ToInt32(weekPeriod[0]);  //用于获取血压的详细数据
+                        ImplementationPhone.EndDate = Convert.ToInt32(weekPeriod[1]);
+                    }
+
+                    #region  读取任务执行情况，血压、用药-最近一周的数据
+
+                    //读取任务  phone版 此函数其他任务也显示
+                    DataTable TaskList = new DataTable();
+                    TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
+
+                    //测量-血压、脉率 （默认显示-收缩压）
+                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                    DataRow[] VitalSignRows = TaskList.Select(condition);
+
+                    List<MstBloodPressure> reference = new List<MstBloodPressure>();
+                    ChartData ChartData = new ChartData();
+                    List<Graph> GraphList = new List<Graph>();
+                    GraphGuide GraphGuide = new GraphGuide();
+
+                    if ((VitalSignRows != null) && (VitalSignRows.Length == 3))  //一定会有血压和脉率测量任务  
+                    {
+                        //获取血压的分级规则，脉率的分级原则写死在webservice
+                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+                        //首次进入，默认加载收缩压
+                        GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]), reference);
+
+                        //初始值、目标值、分级规则加工
+                        if (GraphList.Count > 0)
+                        {
+                            GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure_1", reference);
+                            ChartData.GraphGuide = GraphGuide;
+                        }
+                    }
+
+
+
+                    //必有测量任务，其他任务（例如吃药）可能没有
+
+                    //其他任务依从情况
+                    List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
+                    //是否有其他任务
+                    //string condition1 = " Type not in ('VitalSign,')";
+                    if (TaskList.Rows.Count == VitalSignRows.Length)
+                    {
+                        ChartData.OtherTasks = "0";
+                    }
+                    else
+                    {
+                        ChartData.OtherTasks = "1";
+                        TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]));
+                        if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
+                        {
+                            for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
+                            {
+                                GraphList[rowsCount].DrugValue = "1";   //已经初始化过
+                                GraphList[rowsCount].DrugBullet = TasksComByPeriod[rowsCount].drugBullet;
+                                GraphList[rowsCount].DrugColor = TasksComByPeriod[rowsCount].drugColor;
+                                GraphList[rowsCount].DrugDescription = TasksComByPeriod[rowsCount].Events;//+ "<br><a onclick= shuang shuang zz(); shuang shuang;>详细</a>"
+                            }
+                        }
+                    }
+
+
+                    #endregion
+
+                    ChartData.GraphList = GraphList;
+                    ImplementationPhone.ChartData = ChartData;
+                }
+
+                str_result = JSONHelper.ObjectToJson(ImplementationPhone);
+                Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
+                Context.Response.Write(str_result);
+                HttpContext.Current.ApplicationInstance.CompleteRequest();
+                //Context.Response.End();
+                //return ImplementationInfo;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForPhone", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                //return null;
+                throw (ex);
+            }
+        }
+
+        [WebMethod(Description = "获取正在执行的计划中，一周内血压（收缩压/舒张压）和脉率的数据详细时刻列表-phone  Table:Ps.VitalSigns  Author:LS 2015-06-28")]
+        // GetBPDetailByPeriod 获取正在执行的计划中，一周内血压（收缩压/舒张压）和脉率的数据详细时刻列表  LS 2015-06-28
+        public void GetSignsDetailByPeriod(string PatientId, string Module, int StartDate, int EndDate)
+        {
+            SignDetailByP result = new SignDetailByP();
+
+            try
+            {
+                //收缩压
+                DataTable sysInfo = new DataTable();
+                sysInfo = PsVitalSigns.GetTypedSignDetailByPeriod(_cnCache, PatientId, "Bloodpressure", "Bloodpressure_1", StartDate, EndDate);
+
+                //舒张压
+                DataTable diaInfo = new DataTable();
+                diaInfo = PsVitalSigns.GetTypedSignDetailByPeriod(_cnCache, PatientId, "Bloodpressure", "Bloodpressure_2", StartDate, EndDate);
+
+                //脉率
+                //DataTable pulInfo = new DataTable();
+                //pulInfo = PsVitalSigns.GetTypedSignDetailByPeriod(_cnCache, PatientId, "Pulserate", "Pulserate_1", StartDate, EndDate);
+
+                DataTable pulInfo = new DataTable();
+                pulInfo.Columns.Add(new DataColumn("SignType", typeof(string)));
+                pulInfo.Columns.Add(new DataColumn("RecordDate", typeof(string)));
+                pulInfo.Columns.Add(new DataColumn("RecordTime", typeof(string)));
+                pulInfo.Columns.Add(new DataColumn("Value", typeof(string)));
+                pulInfo.Columns.Add(new DataColumn("Unit", typeof(string)));
+                pulInfo.Rows.Add("3", "2015-06-17", "19：43", "79", "");
+                pulInfo.Rows.Add("3", "2015-06-18", "10：33", "79", "");
+                pulInfo.Rows.Add("3", "2015-06-19", "14：00", "55", "");
+                pulInfo.Rows.Add("3", "2015-06-20", "14：00", "120", "");
+                pulInfo.Rows.Add("3", "2015-06-21", "14：00", "88", "");
+
+                //list.PrimaryKey = new DataColumn[] { list.Columns["RecordDate"], list.Columns["RecordTime"], list.Columns["SignType"], };
+
+                //三张表整合，按时间排序 避免条数可能不一致造成的问题  
+                sysInfo.Merge(diaInfo);
+                sysInfo.Merge(pulInfo);
+
+                //按RecordDate、RecordTime、SignType排序  再合并成收集需要的形式
+                DataView dv = sysInfo.DefaultView;
+                dv.Sort = "RecordDate desc, RecordTime asc,SignType asc";
+                DataTable dt_Sort = dv.ToTable();
+
+                //1 收缩压, 2 舒张压, 3 脉率 
+                //整理成日期、时刻、数值的形式
+                //整理成列表形式 2011/01/03 星期三 
+                //08:00 137 95 66
+                //09:00 134 78 66
+                if (dt_Sort.Rows.Count > 0)
+                {
+                    SignDetail SignDetail = new SignDetail();
+                    SignDetail.DetailTime = dt_Sort.Rows[0]["RecordTime"].ToString();
+                    if (dt_Sort.Rows[0]["SignType"].ToString() == "1")
+                    {
+                        SignDetail.SBPValue = dt_Sort.Rows[0]["Value"].ToString();
+                    }
+                    else if (dt_Sort.Rows[0]["SignType"].ToString() == "2")
+                    {
+                        SignDetail.DBPValue = dt_Sort.Rows[0]["Value"].ToString();
+                    }
+                    else
+                    {
+                        SignDetail.PulseValue = dt_Sort.Rows[0]["Value"].ToString();
+                    }
+
+                    SignDetailByD SignDetailByD = new SignDetailByD();
+                    SignDetailByD.Date = dt_Sort.Rows[0]["RecordDate"].ToString();
+                    SignDetailByD.WeekDay = PsCompliance.CaculateWeekDay(dt_Sort.Rows[0]["RecordDate"].ToString());
+
+                    if (dt_Sort.Rows.Count == 1)
+                    {
+                        SignDetailByD.SignDetailList.Add(SignDetail);
+                        result.SignDetailByDs.Add(SignDetailByD);
+                    }
+                    else
+                    {
+                        string temp_date = dt_Sort.Rows[0]["RecordDate"].ToString();
+                        string temp_hour = dt_Sort.Rows[0]["RecordTime"].ToString();
+
+                        for (int rowsCount = 1; rowsCount < dt_Sort.Rows.Count; rowsCount++)
+                        {
+                            if (rowsCount != dt_Sort.Rows.Count - 1)
+                            {
+                                #region 不是最后一条
+
+                                if (temp_date == dt_Sort.Rows[rowsCount]["RecordDate"].ToString())
+                                {
+                                    #region 同一天
+                                    if (temp_hour == dt_Sort.Rows[rowsCount]["RecordTime"].ToString())
+                                    {
+                                        if (dt_Sort.Rows[rowsCount]["SignType"].ToString() == "1")
+                                        {
+                                            SignDetail.SBPValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                        }
+                                        else if (dt_Sort.Rows[rowsCount]["SignType"].ToString() == "2")
+                                        {
+                                            SignDetail.DBPValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                        }
+                                        else
+                                        {
+                                            SignDetail.PulseValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                        }
+                                    }
+                                    else
+                                    {
+                                        SignDetailByD.SignDetailList.Add(SignDetail);
+
+                                        SignDetail = new SignDetail();
+                                        SignDetail.DetailTime = dt_Sort.Rows[rowsCount]["RecordTime"].ToString();
+                                        if (dt_Sort.Rows[rowsCount]["SignType"].ToString() == "1")
+                                        {
+                                            SignDetail.SBPValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                        }
+                                        else if (dt_Sort.Rows[rowsCount]["SignType"].ToString() == "2")
+                                        {
+                                            SignDetail.DBPValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                        }
+                                        else
+                                        {
+                                            SignDetail.PulseValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                        }
+
+                                        temp_hour = dt_Sort.Rows[rowsCount]["RecordTime"].ToString();
+                                    }
+                                    #endregion
+                                }
+                                else
+                                {
+                                    #region 不同天
+                                    SignDetailByD.SignDetailList.Add(SignDetail);
+                                    result.SignDetailByDs.Add(SignDetailByD);
+
+                                    SignDetailByD = new SignDetailByD();
+                                    SignDetail = new SignDetail();
+                                    SignDetail.DetailTime = dt_Sort.Rows[rowsCount]["RecordTime"].ToString();
+                                    if (dt_Sort.Rows[rowsCount]["SignType"].ToString() == "1")
+                                    {
+                                        SignDetail.SBPValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                    }
+                                    else if (dt_Sort.Rows[rowsCount]["SignType"].ToString() == "2")
+                                    {
+                                        SignDetail.DBPValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                    }
+                                    else
+                                    {
+                                        SignDetail.PulseValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                    }
+                                    SignDetailByD.Date = dt_Sort.Rows[rowsCount]["RecordDate"].ToString();
+                                    SignDetailByD.WeekDay = PsCompliance.CaculateWeekDay(dt_Sort.Rows[rowsCount]["RecordDate"].ToString());
+
+                                    temp_date = dt_Sort.Rows[rowsCount]["RecordDate"].ToString();
+                                    temp_hour = dt_Sort.Rows[rowsCount]["RecordTime"].ToString();
+
+                                    #endregion
+                                }
+                                #endregion
+                            }
+                            else
+                            {
+                                #region 最后一条
+
+                                if (temp_date == dt_Sort.Rows[rowsCount]["RecordDate"].ToString())
+                                {
+                                    #region 同一天
+                                    if (temp_hour == dt_Sort.Rows[rowsCount]["RecordTime"].ToString())
+                                    {
+                                        if (dt_Sort.Rows[rowsCount]["SignType"].ToString() == "1")
+                                        {
+                                            SignDetail.SBPValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                        }
+                                        else if (dt_Sort.Rows[rowsCount]["SignType"].ToString() == "2")
+                                        {
+                                            SignDetail.DBPValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                        }
+                                        else
+                                        {
+                                            SignDetail.PulseValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                        }
+                                        SignDetailByD.SignDetailList.Add(SignDetail);
+                                        result.SignDetailByDs.Add(SignDetailByD);
+                                    }
+                                    else
+                                    {
+                                        SignDetailByD.SignDetailList.Add(SignDetail);
+
+                                        SignDetail = new SignDetail();
+                                        SignDetail.DetailTime = dt_Sort.Rows[rowsCount]["RecordTime"].ToString();
+                                        if (dt_Sort.Rows[rowsCount]["SignType"].ToString() == "1")
+                                        {
+                                            SignDetail.SBPValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                        }
+                                        else if (dt_Sort.Rows[rowsCount]["SignType"].ToString() == "2")
+                                        {
+                                            SignDetail.DBPValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                        }
+                                        else
+                                        {
+                                            SignDetail.PulseValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                        }
+
+                                        temp_hour = dt_Sort.Rows[rowsCount]["RecordTime"].ToString();
+                                        SignDetailByD.SignDetailList.Add(SignDetail);
+                                        result.SignDetailByDs.Add(SignDetailByD);
+                                    }
+                                    #endregion
+                                }
+                                else
+                                {
+                                    #region 不同天
+                                    SignDetailByD.SignDetailList.Add(SignDetail);
+                                    result.SignDetailByDs.Add(SignDetailByD);
+
+                                    SignDetailByD = new SignDetailByD();
+                                    SignDetail = new SignDetail();
+                                    SignDetail.DetailTime = dt_Sort.Rows[rowsCount]["RecordTime"].ToString();
+                                    if (dt_Sort.Rows[rowsCount]["SignType"].ToString() == "1")
+                                    {
+                                        SignDetail.SBPValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                    }
+                                    else if (dt_Sort.Rows[rowsCount]["SignType"].ToString() == "2")
+                                    {
+                                        SignDetail.DBPValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                    }
+                                    else
+                                    {
+                                        SignDetail.PulseValue = dt_Sort.Rows[rowsCount]["Value"].ToString();
+                                    }
+                                    SignDetailByD.Date = dt_Sort.Rows[rowsCount]["RecordDate"].ToString();
+                                    SignDetailByD.WeekDay = PsCompliance.CaculateWeekDay(dt_Sort.Rows[rowsCount]["RecordDate"].ToString());
+
+                                    temp_date = dt_Sort.Rows[rowsCount]["RecordDate"].ToString();
+                                    SignDetailByD.SignDetailList.Add(SignDetail);
+                                    result.SignDetailByDs.Add(SignDetailByD);
+
+                                    #endregion
+                                }
+
+                                #endregion
+                            }
+
+                        }
+                    }
+                }
+
+                //return result;
+                string a = JSONHelper.ObjectToJson(result);
+                Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
+                Context.Response.Write(a);
+                //Context.Response.End();
+                HttpContext.Current.ApplicationInstance.CompleteRequest();
+
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetSignsDetailByPeriod", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                //return null;
+                throw (ex);
+            }
+        }
+
+
+        //网站与Pad差别不大，除了输出形式，pad是json，web是xml  web不用基本信息，多出任务列表的输出  研究下web能不能直接掉json
+        [WebMethod(Description = "获取健康计划完成情况（Web)-任务列表、任务完成情况  Table:计划、任务、依从..  Author:LS 2015-06-28")]
+        // GetImplementationForWeb 获取计划完成情况（Web）  LS 2015-03-27  
+        public ImplementationInfo GetImplementationForWebFirst(string PatientId, string Module)
+        {
+            ImplementationInfo ImplementationInfo = new ImplementationInfo();
+            try
+            {
+                string PlanNo = "";
+
+                //病人基本信息-姓名、头像..
+                //CacheSysList patientList = PsBasicInfo.GetPatientBasicInfo(_cnCache, PatientId);
+                //if (patientList != null)
+                //{
+                //    ImplementationInfo.PatientInfo.PatientName = patientList[0];
+
+                //    CacheSysList BasicInfoDetail = PsBasicInfoDetail.GetDetailInfo(_cnCache, PatientId);
+                //    if (BasicInfoDetail != null)
+                //    {
+                //        if (BasicInfoDetail[6] != null)
+                //        {
+                //            ImplementationInfo.PatientInfo.ImageUrl = BasicInfoDetail[6].ToString();
+                //        }
+                //        else
+                //        {
+                //            ImplementationInfo.PatientInfo.ImageUrl = "";  //js端意外不能识别null
+                //        }
+
+                //    }
+                //}
+
+                //刚进入页面加载计划列表 (始终存在第一条-当前计划）
+                ImplementationInfo.PlanList = PsPlan.GetPlanList34ByM(_cnCache, PatientId, Module);
+
+                PlanNo = ImplementationInfo.PlanList[0].PlanNo; //肯定会存在 
+
+                #region  存在正在执行的计划
+
+                if ((PlanNo != "") && (PlanNo != null))  //存在正在执行的计划
+                {
+                    //剩余天数和进度
+                    InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
+                    PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
+                    if (PRlist != null)
+                    {
+                        ImplementationInfo.RemainingDays = PRlist[0].ToString();
+                        ImplementationInfo.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();
+
+                        ImplementationInfo.StartDate = ImplementationInfo.PlanList[0].StartDate;
+                        ImplementationInfo.EndDate = ImplementationInfo.PlanList[0].EndDate;
+                    }
+
+                    //正在执行计划的最近一周的依从率
+                    InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
+                    weekPeriod = PsPlan.GetWeekPeriod(_cnCache, ImplementationInfo.PlanList[0].StartDate);
+                    if (weekPeriod != null)
+                    {
+
+                        ImplementationInfo.CompliacneValue = "最近一周依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1])) + "%";
+                    }
+
+                    //读取任务列表
+                    DataTable TaskList = new DataTable();
+                    TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
+                    ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
+
+                    //测量-血压、脉率 （默认显示-收缩压）
+                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                    DataRow[] VitalSignRows = TaskList.Select(condition);
+
+                    List<MstBloodPressure> reference = new List<MstBloodPressure>();
+                    ChartData ChartData = new ChartData();
+                    List<Graph> GraphList = new List<Graph>();
+                    GraphGuide GraphGuide = new GraphGuide();
+
+                    if ((VitalSignRows != null) && (VitalSignRows.Length == 3))  //一定会有血压和脉率测量任务   记得改回来..
+                    {
+                        //获取血压的分级规则，脉率的分级原则写死在webservice
+                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+                        //首次进入，默认加载收缩压
+                        GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate, reference);
+                        //GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", ImplementationInfo.StartDate, ImplementationInfo.EndDate, reference);
+
+                        //初始值、目标值、分级规则加工
+                        if (GraphList.Count > 0)
+                        {
+                            GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure_1", reference);
+                            ChartData.GraphGuide = GraphGuide;
+                        }
+                    }
+
+
+                    //必有测量任务，其他任务（例如吃药）可能没有
+
+                    //其他任务依从情况
+                    List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
+                    if (TaskList.Rows.Count == VitalSignRows.Length)
+                    {
+                        ChartData.OtherTasks = "0";
+                    }
+                    else
+                    {
+                        ChartData.OtherTasks = "1";
+                        TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate);
+                        if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
+                        {
+                            for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
+                            {
+                                GraphList[rowsCount].DrugValue = "1";   //已经初始化过
+                                GraphList[rowsCount].DrugBullet = TasksComByPeriod[rowsCount].drugBullet;
+                                GraphList[rowsCount].DrugColor = TasksComByPeriod[rowsCount].drugColor;
+                                GraphList[rowsCount].DrugDescription = TasksComByPeriod[rowsCount].Events;
+                            }
+                        }
+                    }
+                    ChartData.GraphList = GraphList;
+                    ImplementationInfo.ChartData = ChartData;
+                }
+
+                #endregion
+
+                return ImplementationInfo;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForWebFirst", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                //return null;
+                throw (ex);
+            }
+        }
+
+        [WebMethod(Description = "获取健康计划完成情况（Web)-任务列表、任务完成情况  Table:计划、任务、依从..  Author:LS 2015-06-28")]
+        // GetImplementationForWebSecond 获取计划完成情况（Web）-查看往期计划  LS 2015-06-28  
+        public ImplementationInfo GetImplementationForWebSecond(string PatientId, string PlanNo)
+        {
+            ImplementationInfo ImplementationInfo = new ImplementationInfo();
+            //string str_result = "";
+
+            try
+            {
+                //Pad保证PlanNo输入不为空  为空的表示无当前计划，则显示无执行即可，无需连接网络服务
+
+                if ((PlanNo != "") && (PlanNo != null)) //存在正在执行的计划
+                {
+                    //获取计划的相关信息
+                    int planStatus = 0;
+
+                    InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
+                    planInfo = PsPlan.GetPlanInfo(_cnCache, PlanNo);
+                    if (planInfo != null)
+                    {
+                        planStatus = Convert.ToInt32(planInfo[5]);
+
+                        ImplementationInfo.StartDate = Convert.ToInt32(planInfo[2]);
+                        ImplementationInfo.EndDate = Convert.ToInt32(planInfo[3]);
+
+                    }
+
+                    if (planStatus == 3) //是正在执行的当前计划
+                    {
+                        //剩余天数和进度
+                        InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
+                        PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
+                        if (PRlist != null)
+                        {
+                            ImplementationInfo.RemainingDays = PRlist[0].ToString();
+                            ImplementationInfo.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();
+
+                        }
+
+                        //最近一周的依从率
+                        InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
+                        weekPeriod = PsPlan.GetWeekPeriod(_cnCache, ImplementationInfo.StartDate);
+                        if (weekPeriod != null)
+                        {
+                            ImplementationInfo.CompliacneValue = "最近一周依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1])) + "%";
+                        }
+                    }
+                    else  //已经结束计划
+                    {
+                        ImplementationInfo.RemainingDays = "0";
+                        ImplementationInfo.ProgressRate = "100";
+                        ImplementationInfo.CompliacneValue = "整个计划依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, ImplementationInfo.StartDate, ImplementationInfo.EndDate) + "%";
+                    }
+
+                    #region  读取任务执行情况，体征、用药等
+
+                    //读取任务列表
+                    DataTable TaskList = new DataTable();
+                    TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
+                    ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
+
+                    //测量-血压、脉率 （默认显示-收缩压）
+                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2' or  Code = 'Pulserate|Pulserate_1'";
+                    DataRow[] VitalSignRows = TaskList.Select(condition);
+
+                    List<MstBloodPressure> reference = new List<MstBloodPressure>();
+                    ChartData ChartData = new ChartData();
+                    List<Graph> GraphList = new List<Graph>();
+                    GraphGuide GraphGuide = new GraphGuide();
+
+                    if ((VitalSignRows != null) && (VitalSignRows.Length == 3))  //一定会有血压和脉率测量任务  记得改回来..
+                    {
+                        //获取血压的分级规则，脉率的分级原则写死在webservice
+                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+                        //首次进入，默认加载收缩压
+                        GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", ImplementationInfo.StartDate, ImplementationInfo.EndDate, reference);
+
+                        //初始值、目标值、分级规则加工
+                        if (GraphList.Count > 0)
+                        {
+                            GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure_1", reference);
+                            ChartData.GraphGuide = GraphGuide;
+                        }
+                    }
+
+
+                    //必有测量任务，其他任务（例如吃药）可能没有
+
+                    //其他任务依从情况
+                    List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
+                    if (TaskList.Rows.Count == VitalSignRows.Length)
+                    {
+                        ChartData.OtherTasks = "0";
+                    }
+                    else
+                    {
+                        ChartData.OtherTasks = "1";
+                        TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.StartDate, ImplementationInfo.EndDate);
+                        if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
+                        {
+                            for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
+                            {
+                                GraphList[rowsCount].DrugValue = "1";
+                                GraphList[rowsCount].DrugBullet = TasksComByPeriod[rowsCount].drugBullet;
+                                GraphList[rowsCount].DrugColor = TasksComByPeriod[rowsCount].drugColor;
+                                GraphList[rowsCount].DrugDescription = TasksComByPeriod[rowsCount].Events;
+                            }
+                        }
+                    }
+                    ChartData.GraphList = GraphList;
+                    ImplementationInfo.ChartData = ChartData;
+
+                    #endregion
+                }
+
+                return ImplementationInfo;
+                //str_result = JSONHelper.ObjectToJson(ImplementationInfo);
+                //Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
+                //Context.Response.Write(str_result);
+                //HttpContext.Current.ApplicationInstance.CompleteRequest();
+                //Context.Response.End();
+
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForPadSecond", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                //return null;
+                throw (ex);
+            }
+        }
+
+        [WebMethod(Description = "获取某体征的数据和画图信息（Web）  Table:Ps.VitalSigns  Author:LS 2015-06-29")]
+        // GetBPInfo1 获取某体征的数据和画图信息（收缩压、舒张压、脉率）  LS 2015-06-29
+        //关于输入 StartDate，EndDate  Pad首次没有拿出StartDate，EndDate    Phone拿出了 这样规划比较好
+        public ChartData GetSignInfoByCodeWeb(string PatientId, string PlanNo, string ItemCode, int StartDate, int EndDate)
+        {
+            ChartData ChartData = new ChartData();
+            List<Graph> GraphList = new List<Graph>();
+            GraphGuide GraphGuide = new GraphGuide();
+            List<MstBloodPressure> reference = new List<MstBloodPressure>();
+
+            try
+            {
+                if (ItemCode == "Pulserate_1")
+                {
+                    GraphList = CmMstBloodPressure.GetSignInfoByPulse(_cnCache, PatientId, PlanNo, ItemCode, StartDate, EndDate);
+
+                    //分级规则加工  脉率没有 初始值和目标值
+                    if (GraphList.Count > 0)
+                    {
+                        GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, ItemCode, reference);
+                        ChartData.GraphGuide = GraphGuide;
+                    }
+                }
+                else
+                {
+
+                    reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+                    GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, ItemCode, StartDate, EndDate, reference);
+
+                    //初始值、目标值、分级规则加工
+                    if (GraphList.Count > 0)
+                    {
+                        GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, ItemCode, reference);
+                        ChartData.GraphGuide = GraphGuide;
+                    }
+                }
+
+                //必有测量任务，其他任务（例如吃药）可能没有
+
+                //读取任务列表
+                DataTable TaskList = new DataTable();
+                TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
+                string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                DataRow[] VitalSignRows = TaskList.Select(condition);
+
+                //其他任务依从情况
+                List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
+                //是否有其他任务   //string condition1 = " Type not in ('VitalSign,')";
+                if (TaskList.Rows.Count == VitalSignRows.Length)
+                {
+                    ChartData.OtherTasks = "0";
+                }
+                else
+                {
+                    ChartData.OtherTasks = "1";
+                    TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, StartDate, EndDate);
+                    if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
+                    {
+                        for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
+                        {
+                            GraphList[rowsCount].DrugValue = "1";   //已经初始化过
+                            GraphList[rowsCount].DrugBullet = TasksComByPeriod[rowsCount].drugBullet;
+                            GraphList[rowsCount].DrugColor = TasksComByPeriod[rowsCount].drugColor;
+                            GraphList[rowsCount].DrugDescription = TasksComByPeriod[rowsCount].Events;
+                        }
+                    }
+                }
+                ChartData.GraphList = GraphList;
+
+
+                return ChartData;
+                //string a = JSONHelper.ObjectToJson(ChartData);
+                //Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
+                //Context.Response.Write(a);
+                //Context.Response.End();
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetSignInfoByCode", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                //return null;
+                throw (ex);
+            }
+        }
+
         #endregion
     }
 

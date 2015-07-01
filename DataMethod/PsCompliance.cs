@@ -246,7 +246,10 @@ namespace WebService.DataMethod
             }
         }
 
-        //GetCompliacneRate 计算某段时间的依从率 LS 2015-03-30
+
+        //以下是任务完成情况用到的函数
+
+        //GetCompliacneRate 计算某段时间的总依从率 LS 2015-03-27 
         public static string GetCompliacneRate(DataConnection pclsCache, string PatientId, string PlanNo, int StartDate, int EndDate)
         {
             string compliacneRate = "";
@@ -488,7 +491,7 @@ namespace WebService.DataMethod
                     else
                     {
                         //temp_str += list_sort.Rows[0]["TaskName"].ToString() + "noncomplete  ";
-                        temp_str += "<b><span style='font-size:14px;color:red;'>" + list_sort.Rows[0]["TaskName"].ToString() + "noncomplete  " + "：</span></b>";
+                        temp_str += "<b><span style='font-size:14px;color:red;'>" + list_sort.Rows[0]["TaskName"].ToString() + "noncomplete  " + "</span></b>";
                     }
 
 
@@ -616,7 +619,7 @@ namespace WebService.DataMethod
             }
         }
 
-        // 废止 GetDrugComByPeriod 李山 2010505 药物的依从情况 
+        // GetDrugComByPeriod 李山 2010505 药物的依从情况  phone版使用 
         public static List<CompliacneDetailByD> GetDrugComByPeriod(DataConnection pclsCache, string PatientId, string PlanNo, int StartDate, int EndDate)
         {
 
