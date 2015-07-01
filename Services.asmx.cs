@@ -11788,6 +11788,15 @@ namespace WebService
         }
 
         #endregion
+
+        [WebMethod(Description = "获取远程调用的IP，Author:ZC 2015-07-01")]
+        public string getRemoteIPAddress()
+        {
+            string visitorIP = "";
+            visitorIP = HttpContext.Current.Request.UserHostAddress;
+            return visitorIP;
+        }
+
     }
 
 }
