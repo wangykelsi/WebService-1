@@ -3622,6 +3622,46 @@ namespace WebService
             }
         }
 
+        [WebMethod(Description = "获取糖尿病药物名称列表 Table:Cm.MstDiabetesDrug Author:CSQ 20150703")]
+        // GetDiabetesDrugNameList 获取糖尿病名称列表 CSQ 20150703
+        public DataSet GetDiabetesDrugNameList(string Type)
+        {
+            try
+            {
+                DataTable DT_MstDiabetesDrug = new DataTable();
+                DataSet DS_MstDiabetesDrug = new DataSet();
+                DT_MstDiabetesDrug = CmMstDiabetesDrug.GetDiabetesDrugList(_cnCache, Type);
+                DS_MstDiabetesDrug.Tables.Add(DT_MstDiabetesDrug);
+                return DS_MstDiabetesDrug;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetDiabetesDrugNameList", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+                throw (ex);
+            }
+        }
+
+        [WebMethod(Description = "获取高血压药物名称列表 Table:Cm.MstHypertensionDrug Author:CSQ 20150703")]
+        // GetHypertensionDrugNameList 获取高血压药物名称列表 CSQ 20150703
+        public DataSet GetHypertensionDrugNameList(string Type)
+        {
+            try
+            {
+                DataTable DT_MstHypertensionDrug = new DataTable();
+                DataSet DS_MstHypertensionDrug = new DataSet();
+                DT_MstHypertensionDrug = CmMstHypertensionDrug.GetHypertensionDrugList(_cnCache, Type);
+                DS_MstHypertensionDrug.Tables.Add(DT_MstHypertensionDrug);
+                return DS_MstHypertensionDrug;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetHypertensionDrugNameList", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+                throw (ex);
+            }
+        }
+
         [WebMethod(Description = "获取诊断类型名称列表 Table:Cm.MstDiagnosis Author:CSQ 2014-12-03")]
         // GetDiagTypeNameList 获取诊断类型名称列表 CSQ 2014-12-03
         public DataSet GetDiagTypeNameList()
@@ -3637,6 +3677,46 @@ namespace WebService
             catch (Exception ex)
             {
                 HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetDiagTypeNameList", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+                throw (ex);
+            }
+        }
+
+        [WebMethod(Description = "获取糖尿病药物类型名称列表 Table:Cm.MstDiabetesDrug Author:CSQ 20150703")]
+        // GetDiabetesDrugTypeNameList 获取糖尿病药物类型名称列表 CSQ 20150703
+        public DataSet GetDiabetesDrugTypeNameList()
+        {
+            try
+            {
+                DataTable DT_MstDiabetesDrug = new DataTable();
+                DataSet DS_MstDiabetesDrug = new DataSet();
+                DT_MstDiabetesDrug = CmMstDiabetesDrug.GetTypeList(_cnCache);
+                DS_MstDiabetesDrug.Tables.Add(DT_MstDiabetesDrug);
+                return DS_MstDiabetesDrug;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetDiabetesDrugTypeNameList", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+                throw (ex);
+            }
+        }
+
+        [WebMethod(Description = "获取高血压药物类型名称列表 Table:Cm.MstHypertensionDrug Author:CSQ 20150703")]
+        // GetHypertensionDrugTypeNameList 获取高血压药物类型名称列表 CSQ 20150703
+        public DataSet GetHypertensionDrugTypeNameList()
+        {
+            try
+            {
+                DataTable DT_MstHypertensionDrug = new DataTable();
+                DataSet DS_MstHypertensionDrug = new DataSet();
+                DT_MstHypertensionDrug = CmMstHypertensionDrug.GetTypeList(_cnCache);
+                DS_MstHypertensionDrug.Tables.Add(DT_MstHypertensionDrug);
+                return DS_MstHypertensionDrug;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetHypertensionDrugTypeNameList", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
                 return null;
                 throw (ex);
             }
