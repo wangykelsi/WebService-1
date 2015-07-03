@@ -11,6 +11,7 @@ namespace WebService.DataClass
 
     public class SignDetailByP  //高血压体征详细-日期段
     {
+        public int NextStartDate { get; set; } //需要查询起始的时间
 
         public List<SignDetailByD> SignDetailByDs { get; set; }
 
@@ -60,7 +61,7 @@ namespace WebService.DataClass
     }
 
 
-    //任务依从情况
+    //任务依从情况 ？
     public class CompliacneDetailByD
     {
 
@@ -73,6 +74,82 @@ namespace WebService.DataClass
         public string drugColor { get; set; }
 
         public string Events { get; set; }
+
+    }
+
+
+    //某天任务依从情况详细 用于弹框显示该天全部详情  目前按类别来分
+    public class TaskComDetailByD
+    {
+
+        public string Date { get; set; }
+
+        public string WeekDay { get; set; }
+
+        public string ComplianceValue { get; set; }
+
+        public List<VitalTaskCom> VitalTaskComList { get; set; } //体征测量
+
+        public List<TaskCom> LifeTaskComList { get; set; }//生活方式
+
+        public List<TaskCom> DrugTaskComList { get; set; } //用药情况
+
+
+        public TaskComDetailByD()
+        {
+            LifeTaskComList = new List<TaskCom>();
+
+            DrugTaskComList = new List<TaskCom>();
+
+            VitalTaskComList = new List<VitalTaskCom>();
+        }
+
+    }
+
+
+    //任务详细依从情况类  适用于体征测量和用药情况 
+    public class TaskComByType
+    {
+
+        public string TaskType { get; set; }  //任务类型：体征测量 生活方式 用药情况   
+
+        public List<TaskCom> TaskComList { get; set; }
+
+        public TaskComByType()
+        {
+            TaskComList = new List<TaskCom>();
+        }
+
+
+    }
+
+    //任务详细依从情况类
+    public class TaskCom
+    {
+
+        public string TaskName { get; set; }  //体征名称 药物名称 生活方式名称   
+
+        public string TaskStatus { get; set; }  //是否完成 对应勾叉
+
+        //public string Description { get; set; }  //描述 用于显示生理参数的值
+
+        //public string Description1 { get; set; }  //描述 用于显示生理参数的单位
+
+    }
+
+    //体征任务详细情况类
+    public class VitalTaskCom
+    {
+        public string Status { get; set; }  //是否完成 对应勾叉
+
+        public string Time { get; set; }  //  
+
+        public string SignName { get; set; }  //  
+
+        public string Value { get; set; }  //
+
+        public string Unit { get; set; }  //
+
 
     }
 }

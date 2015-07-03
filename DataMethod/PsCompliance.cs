@@ -619,6 +619,7 @@ namespace WebService.DataMethod
             }
         }
 
+
         // GetDrugComByPeriod 李山 2010505 药物的依从情况  phone版使用 
         public static List<CompliacneDetailByD> GetDrugComByPeriod(DataConnection pclsCache, string PatientId, string PlanNo, int StartDate, int EndDate)
         {
@@ -813,6 +814,237 @@ namespace WebService.DataMethod
                     cmd = null;
                 }
                 pclsCache.DisConnect();
+            }
+        }
+
+
+        //GetTasksComByPeriod  某天所有任务的依从情况 DataTable数据库形式  LS 2010505
+        public static DataTable GetTasksComListByDate(DataConnection pclsCache, string PatientId, string PlanNo, int Date)
+        {
+
+            DataTable list = new DataTable();
+            list.Columns.Add(new DataColumn("Date", typeof(string)));
+            list.Columns.Add(new DataColumn("ComplianceValue", typeof(double)));
+            list.Columns.Add(new DataColumn("TaskType", typeof(string)));
+            list.Columns.Add(new DataColumn("TaskId", typeof(string)));
+            list.Columns.Add(new DataColumn("TaskName", typeof(string)));
+            list.Columns.Add(new DataColumn("Status", typeof(int)));
+            list.Columns.Add(new DataColumn("TaskCode", typeof(string)));
+
+            CacheCommand cmd = null;
+            CacheDataReader cdr = null;
+            try
+            {
+                if (!pclsCache.Connect())
+                {
+                    return null;
+                }
+                cmd = new CacheCommand();
+                cmd = Ps.Compliance.GetTasksComListByDate(pclsCache.CacheConnectionObject);
+                cmd.Parameters.Add("PatientId", CacheDbType.NVarChar).Value = PatientId;
+                cmd.Parameters.Add("PlanNo", CacheDbType.NVarChar).Value = PlanNo;
+                cmd.Parameters.Add("Date", CacheDbType.Int).Value = Date;
+
+                cdr = cmd.ExecuteReader();
+                while (cdr.Read())
+                {
+                    list.Rows.Add(cdr["Date"].ToString(), Convert.ToDouble(cdr["ComplianceValue"]), cdr["TaskType"].ToString(), cdr["TaskId"].ToString(), cdr["TaskName"].ToString(), Convert.ToInt32(cdr["Status"]), cdr["TaskCode"].ToString());
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Ps.Compliance.GetTasksComListByDate", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+            }
+            finally
+            {
+                if ((cdr != null))
+                {
+                    cdr.Close();
+                    cdr.Dispose(true);
+                    cdr = null;
+                }
+                if ((cmd != null))
+                {
+                    cmd.Parameters.Clear();
+                    cmd.Dispose();
+                    cmd = null;
+                }
+                pclsCache.DisConnect();
+            }
+        }
+
+        //GetImplementationByDate 某天所有任务的依从情况 整理加工  LS 2015-03-27 
+        public static TaskComDetailByD GetImplementationByDate(DataConnection pclsCache, string PatientId, string PlanNo, int Date)
+        {
+
+            TaskComDetailByD TaskComDetailByD = new TaskComDetailByD();
+
+            try
+            {
+                TaskComDetailByD.Date = Date.ToString().Substring(0, 4) + "-" + Date.ToString().Substring(4, 2) + "-" + Date.ToString().Substring(6, 2);
+                TaskComDetailByD.WeekDay = PsCompliance.CaculateWeekDay(TaskComDetailByD.Date);
+                //先读任务表，读取体征，拿出新数据；再读药物表，超过三个则省略号
+                //DataTable TaskList = new DataTable();
+                //TaskList = PsTask.GetTaskList(pclsCache, PlanNo);
+
+                ////读取体征，拿出当天最新数据
+                //string condition = " Type = 'VitalSign'";
+                //DataRow[] VitalSignRows = TaskList.Select(condition);
+
+                //CacheSysList VitalSignList = new InterSystems.Data.CacheTypes.CacheSysList(System.Text.Encoding.Unicode, true, true);
+                //for (int j=0; j < VitalSignRows.Length; j++)
+                //{
+                //    string code = VitalSignRows[j]["Type"].ToString();
+                //    string[] sArray = code.Split(new char[] { '|' });;//拆分
+                //    string type = sArray[0].ToString();
+                //    VitalSignList = new InterSystems.Data.CacheTypes.CacheSysList(System.Text.Encoding.Unicode, true, true);
+                //    VitalSignList = PsVitalSigns.GetSignByDay(pclsCache, PatientId, code, type, Date);
+                //    if (VitalSignList != null)
+                //    {
+
+                //    }
+                //}
+
+
+                //取出当天的体征测量 若有与测试任务拼接好了
+                //先写死取的生理参数
+                List<VitalTaskCom> VitalTaskComList = new List<VitalTaskCom>();
+                VitalTaskCom VitalTaskCom = new VitalTaskCom();
+
+                string BPTime = "";
+                string SysValue = "";
+                string DiaValue = "";
+                string Unit = "";
+                CacheSysList SysList = PsVitalSigns.GetSignByDay(pclsCache, PatientId, "Bloodpressure", "Bloodpressure_1", Date);
+                if (SysList != null)
+                {
+                    BPTime = PsVitalSigns.TransTime(SysList[1].ToString());  //时刻数据库是"1043"形式，需要转换
+                    SysValue = SysList[2].ToString();
+                    Unit = SysList[3].ToString();
+                }
+                CacheSysList DiaList = PsVitalSigns.GetSignByDay(pclsCache, PatientId, "Bloodpressure", "Bloodpressure_1", Date);
+                if (DiaList != null)
+                {
+                    DiaValue = DiaList[2].ToString();
+                }
+
+                VitalTaskCom = new VitalTaskCom();
+                VitalTaskCom.SignName = "血压";
+                if (BPTime != "")
+                {
+                    VitalTaskCom.Status = "1";
+                    VitalTaskCom.Time = BPTime;
+                    VitalTaskCom.Value = SysValue + "/" + DiaValue;
+                    VitalTaskCom.Unit = Unit;
+                }
+                else
+                {
+                    VitalTaskCom.Status = "0";
+                }
+                VitalTaskComList.Add(VitalTaskCom);
+
+
+                VitalTaskCom = new VitalTaskCom();
+                VitalTaskCom.SignName = "脉率";
+
+                CacheSysList PulList = PsVitalSigns.GetSignByDay(pclsCache, PatientId, "Pulserate", "Pulserate_1", Date);
+                if (PulList != null)
+                {
+
+                    VitalTaskCom.Status = "1";
+                    VitalTaskCom.Time = PsVitalSigns.TransTime(PulList[1].ToString());
+                    VitalTaskCom.Value = PulList[2].ToString();
+                    VitalTaskCom.Unit = PulList[3].ToString();
+                }
+                else
+                {
+                    VitalTaskCom.Status = "0";
+
+                }
+                VitalTaskComList.Add(VitalTaskCom);
+
+                TaskComDetailByD.VitalTaskComList = VitalTaskComList;
+
+                DataTable ComplianceList = new DataTable();
+                ComplianceList = PsCompliance.GetTasksComListByDate(pclsCache, PatientId, PlanNo, Date);
+
+                
+
+                //体征
+                /*
+                string condition = " Type = 'VitalSign'";
+                DataRow[] VitalSignRows = ComplianceList.Select(condition);
+
+                List<TaskCom> TaskComList = new List<TaskCom>();
+                TaskCom TaskCom = new TaskCom();
+                for (int j = 0; j < VitalSignRows.Length; j++)
+                {
+                    VitalTaskCom = new VitalTaskCom();
+                    VitalTaskCom.SignName = VitalSignRows[j]["TaskName"].ToString();
+                    VitalTaskCom.Status = VitalSignRows[j]["Status"].ToString();
+                    if (TaskCom.TaskStatus == "1")
+                    {
+                        string code = VitalSignRows[j]["TaskCode"].ToString();
+                        string[] sArray = code.Split(new char[] { '|' }); ;//拆分
+                        string type = sArray[0].ToString();
+                        //CacheSysList VitalSignList = new InterSystems.Data.CacheTypes.CacheSysList(System.Text.Encoding.Unicode, true, true);
+                        CacheSysList VitalSignList = new InterSystems.Data.CacheTypes.CacheSysList(System.Text.Encoding.Unicode, true, true);
+                        VitalSignList = PsVitalSigns.GetSignByDay(pclsCache, PatientId, code, type, Date);
+                        if (VitalSignList != null)
+                        {
+                            
+                            VitalTaskCom.Time = PulList[1].ToString();
+                            VitalTaskCom.Value = PulList[2].ToString();
+                            VitalTaskCom.Unit = PulList[3].ToString();
+                            
+                        } 
+                    }
+                    VitalTaskComList.Add(VitalTaskCom);
+                }
+                TaskComDetailByD.VitalTaskComList = VitalTaskComList;
+
+                */
+
+
+                //生活方式 
+                string condition = " TaskType = '生活方式'";
+                DataRow[] LifeStyleRows = ComplianceList.Select(condition);
+
+                List<TaskCom> TaskComList = new List<TaskCom>();
+                TaskCom TaskCom = new TaskCom();
+                for (int j = 0; j < LifeStyleRows.Length; j++)
+                {
+                    TaskCom = new TaskCom();
+                    TaskCom.TaskName = LifeStyleRows[j]["TaskName"].ToString();
+                    TaskCom.TaskStatus = LifeStyleRows[j]["Status"].ToString();
+                    TaskComList.Add(TaskCom);
+                }
+                TaskComDetailByD.LifeTaskComList = TaskComList;
+
+
+                //用药
+                condition = " TaskType = '用药情况'";
+                DataRow[] DrugRows = ComplianceList.Select(condition);
+
+                TaskComList = new List<TaskCom>();
+                TaskCom = new TaskCom();
+                for (int j = 0; j < DrugRows.Length; j++)
+                {
+                    TaskCom = new TaskCom();
+                    TaskCom.TaskName = DrugRows[j]["TaskName"].ToString();
+                    TaskCom.TaskStatus = DrugRows[j]["Status"].ToString();
+                    TaskComList.Add(TaskCom);
+                }
+                TaskComDetailByD.DrugTaskComList = TaskComList;
+
+                return TaskComDetailByD;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "PsCompliance.GetImplementationByDate", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
             }
         }
     }

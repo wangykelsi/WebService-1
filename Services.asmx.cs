@@ -11193,37 +11193,72 @@ namespace WebService
             }
         }
 
-        [WebMethod(Description = "获取正在执行的计划中，一周内血压（收缩压/舒张压）和脉率的数据详细时刻列表-phone  Table:Ps.VitalSigns  Author:LS 2015-06-28")]
-        // GetBPDetailByPeriod 获取正在执行的计划中，一周内血压（收缩压/舒张压）和脉率的数据详细时刻列表  LS 2015-06-28
-        public void GetSignsDetailByPeriod(string PatientId, string Module, int StartDate, int EndDate)
+        [WebMethod(Description = "获取某日期之前，一定条数血压（收缩压/舒张压）和脉率的数据详细时刻列表-phone  Table:Ps.VitalSigns  Author:LS 2015-07-02")]
+        // GetSignsDetailByPeriod 获取某日期之前，一定条数血压（收缩压/舒张压）和脉率的数据详细时刻列表  LS 2015-07-02  用于phone，支持继续加载
+        public void GetSignsDetailByPeriod(string PatientId, string Module, int StartDate, int Num)
         {
             SignDetailByP result = new SignDetailByP();
 
             try
             {
+
+                int CacheStartDate = 0;
+                int CacheEndDate = 0;
+
+                /*严格天数平移
+               string str_CacheEndDate = PsVitalSigns.GetLatestVitalSignDate(_cnCache, PatientId, StartDate);
+               if ((str_CacheEndDate != "") && (str_CacheEndDate != null))
+               {
+                   CacheEndDate = Convert.ToInt32(str_CacheEndDate);
+                   string time = str_CacheEndDate.Substring(0, 4) + "-" + str_CacheEndDate.Substring(4, 2) + "-" + str_CacheEndDate.Substring(6, 2);
+                   DateTime starttime = Convert.ToDateTime(time);
+                   CacheStartDate = Convert.ToInt32(starttime.AddDays(-Num).ToString("yyyyMMdd"));
+                   result.NextStartDate = CacheStartDate;
+               }
+               else
+               {
+
+               }
+                */
+
+                //按有数据的天数平移
+                CacheSysList dateList = PsVitalSigns.GetVitalSignDates(_cnCache, PatientId, StartDate, Num);
+                if (dateList != null)
+                {
+                    if ((dateList[0] != null) && (dateList[1] != null))
+                    {
+                        CacheStartDate = Convert.ToInt32(dateList[0]);
+                        CacheEndDate = Convert.ToInt32(dateList[1]);
+                        result.NextStartDate = CacheStartDate;
+                    }
+                    else if ((dateList[0] == null) && (dateList[1] != null))
+                    {
+                        //CacheStartDate =0;
+                        CacheEndDate = Convert.ToInt32(dateList[1]);
+                        result.NextStartDate = -1; //取完的标志
+
+                    }
+                    else if ((dateList[0] == null) && (dateList[1] == null))
+                    {
+                        //CacheStartDate = 0;
+                        // CacheEndDate = 0;
+                        result.NextStartDate = -1;
+                    }
+
+                }
+
+
                 //收缩压
                 DataTable sysInfo = new DataTable();
-                sysInfo = PsVitalSigns.GetTypedSignDetailByPeriod(_cnCache, PatientId, "Bloodpressure", "Bloodpressure_1", StartDate, EndDate);
+                sysInfo = PsVitalSigns.GetTypedSignDetailByPeriod(_cnCache, PatientId, "Bloodpressure", "Bloodpressure_1", CacheStartDate, CacheEndDate);
 
                 //舒张压
                 DataTable diaInfo = new DataTable();
-                diaInfo = PsVitalSigns.GetTypedSignDetailByPeriod(_cnCache, PatientId, "Bloodpressure", "Bloodpressure_2", StartDate, EndDate);
+                diaInfo = PsVitalSigns.GetTypedSignDetailByPeriod(_cnCache, PatientId, "Bloodpressure", "Bloodpressure_2", CacheStartDate, CacheEndDate);
 
                 //脉率
-                //DataTable pulInfo = new DataTable();
-                //pulInfo = PsVitalSigns.GetTypedSignDetailByPeriod(_cnCache, PatientId, "Pulserate", "Pulserate_1", StartDate, EndDate);
-
                 DataTable pulInfo = new DataTable();
-                pulInfo.Columns.Add(new DataColumn("SignType", typeof(string)));
-                pulInfo.Columns.Add(new DataColumn("RecordDate", typeof(string)));
-                pulInfo.Columns.Add(new DataColumn("RecordTime", typeof(string)));
-                pulInfo.Columns.Add(new DataColumn("Value", typeof(string)));
-                pulInfo.Columns.Add(new DataColumn("Unit", typeof(string)));
-                pulInfo.Rows.Add("3", "2015-06-17", "19：43", "79", "");
-                pulInfo.Rows.Add("3", "2015-06-18", "10：33", "79", "");
-                pulInfo.Rows.Add("3", "2015-06-19", "14：00", "55", "");
-                pulInfo.Rows.Add("3", "2015-06-20", "14：00", "120", "");
-                pulInfo.Rows.Add("3", "2015-06-21", "14：00", "88", "");
+                pulInfo = PsVitalSigns.GetTypedSignDetailByPeriod(_cnCache, PatientId, "Pulserate", "Pulserate_1", CacheStartDate, CacheEndDate);
 
                 //list.PrimaryKey = new DataColumn[] { list.Columns["RecordDate"], list.Columns["RecordTime"], list.Columns["SignType"], };
 
@@ -11802,6 +11837,37 @@ namespace WebService
             }
         }
 
+        [WebMethod(Description = "通过某计划的日期，获取该天的任务完成详情 用于图上点点击时弹框内容..  Author:LS 2015-07-02")]
+        //新加 GetImplementationByDate 通过某计划的日期，获取该天的任务完成详情 用于弹框
+        public void GetImplementationByDate(string PatientId, string PlanNo, string DateSelected)
+        {
+            TaskComDetailByD TaskComDetailByD = new TaskComDetailByD(); //voidDateTime
+            string str_result = "";  //最终的输出-ImplementationInfo转化成json格式
+            try
+            {
+                //DateSelected形式"20150618" 或"15/06/18"  目前使用前者
+                int Date = Convert.ToInt32(DateSelected);
+                //string temp = "20" + DateSelected;
+                //int Date = Convert.ToInt32(Convert.ToDateTime(temp).ToString("yyyyMMdd"));
+                //int Date = Convert.ToInt32(DateSelected.ToString("yyyyMMdd"));
+                TaskComDetailByD = PsCompliance.GetImplementationByDate(_cnCache, PatientId, PlanNo, Convert.ToInt32(Date));
+
+
+                str_result = JSONHelper.ObjectToJson(TaskComDetailByD);
+                Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
+                Context.Response.Write(str_result);
+                HttpContext.Current.ApplicationInstance.CompleteRequest();
+                //Context.Response.End();
+                //return ImplementationInfo;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationByDate", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                //return null;
+                throw (ex);
+            }
+        }
+        
         #endregion
 
         [WebMethod(Description = "获取远程调用的IP，Author:ZC 2015-07-01")]

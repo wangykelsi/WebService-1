@@ -596,5 +596,56 @@ namespace WebService.DataMethod
                 }
             }
         }
+
+        // LS 2015-07-02 获取患者某项生理参数的最近一条数据的记录日期
+        public static string GetLatestVitalSignDate(DataConnection pclsCache, string UserId, int date)
+        {
+            string ret = "";
+            try
+            {
+                if (!pclsCache.Connect())
+                {
+                    return ret;
+                }
+
+                ret = (string)Ps.VitalSigns.GetLatestVitalSignDate(pclsCache.CacheConnectionObject, UserId, date);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Ps.VitalSigns.GetLatestVitalSignDate", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return ret;
+            }
+            finally
+            {
+                pclsCache.DisConnect();
+            }
+        }
+
+        // LS 2015-07-02 获取某日期之后的有数据的起止时间
+        public static CacheSysList GetVitalSignDates(DataConnection pclsCache, string UserId, int date, int Num)
+        {
+            CacheSysList ret = new InterSystems.Data.CacheTypes.CacheSysList(System.Text.Encoding.Unicode, true, true);
+
+            try
+            {
+                if (!pclsCache.Connect())
+                {
+                    return ret;
+                }
+
+                ret = Ps.VitalSigns.GetVitalSignDates(pclsCache.CacheConnectionObject, UserId, date, Num);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Ps.VitalSigns.GetVitalSignDates", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return ret;
+            }
+            finally
+            {
+                pclsCache.DisConnect();
+            }
+        }
     }
 }
