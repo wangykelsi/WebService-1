@@ -49,6 +49,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>bin\Cache.Cm.MstDevice.dll</HintPath>
     </Reference>
+    <Reference Include="Cache.Cm.MstDiabetesDrug, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Cm.MstDiabetesDrug.dll</HintPath>
+    </Reference>
     <Reference Include="Cache.Cm.MstDiagnosis, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>bin\Cache.Cm.MstDiagnosis.dll</HintPath>
@@ -76,6 +80,10 @@
     <Reference Include="Cache.Cm.MstHospital, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>bin\Cache.Cm.MstHospital.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Cm.MstHypertensionDrug, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Cm.MstHypertensionDrug.dll</HintPath>
     </Reference>
     <Reference Include="Cache.Cm.MstIndicator, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -310,6 +318,7 @@
     <Compile Include="DataMethod\CmMstAuthorityDetail.cs" />
     <Compile Include="DataMethod\CmMstBloodPressure.cs" />
     <Compile Include="DataMethod\CmMstDevice.cs" />
+    <Compile Include="DataMethod\CmMstDiabetesDrug.cs" />
     <Compile Include="DataMethod\CmMstDiagnosis.cs" />
     <Compile Include="DataMethod\CmMstDivision.cs" />
     <Compile Include="DataMethod\CmMstDrug.cs" />
@@ -318,6 +327,7 @@
     <Compile Include="DataMethod\CmMstExaminationSubItem.cs" />
     <Compile Include="DataMethod\CmMstHealthEducation.cs" />
     <Compile Include="DataMethod\CmMstHospital.cs" />
+    <Compile Include="DataMethod\CmMstHypertensionDrug.cs" />
     <Compile Include="DataMethod\CmMstIndicator.cs" />
     <Compile Include="DataMethod\CmMstIndicatorParameter.cs" />
     <Compile Include="DataMethod\CmMstInfoItem.cs" />
