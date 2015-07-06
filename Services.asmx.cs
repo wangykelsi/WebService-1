@@ -7175,18 +7175,48 @@ namespace WebService
             }
         }
 
-        [WebMethod(Description = "获取高血压风险几率 Table:很多  Author:SYF 2015-04-23")]
-        //GetHypertension SYF 2015-04-23 获取高血压风险几率      
-        public string GetHypertension(string UserId)
+        [WebMethod(Description = "获取风险评估所需输入 Table:Ps.BasicInfo,Ps.BasicInfoDetail,Ps.VitalSigns(心率)  Author:SYF 2015-06-26")]
+        //GetRiskInput SYF 2015-06-26 获取风险评估所需输入      
+        public DataSet GetRiskInput(string UserId)
         {
-            //UserId = "P444";
             try
             {
-                string Hyper;
-                //double RiskInfactor = 0.0;
+                #region
+                //当用户缺少某项参数时，设置一个默认值
+                int Age = 24;//年龄24岁
+                int Gender = 1;//性别男
+
+                int Height = 176;//身高176cm
+                int Weight = 69;//体重69千克
+
+                int Heartrate = 72;//心率
+
+                int Parent = 1;//父母中至少有一方有高血压
+                int Smoke = 2;//不抽烟
+                int Stroke = 0;//没有中风
+                int Lvh = 1; ;//有左心室肥大
+                int Diabetes = 1;//有伴随糖尿病
+                int Treat = 0;//高血压是否在治疗（接受过）没有
+                int Heartattack = 1;//有过心脏事件（心血管疾病）
+                int Af = 0;//没有过房颤
+                int Chd = 1;//有冠心病(心肌梗塞)
+                int Valve = 0;//没有心脏瓣膜病
+                double Tcho = 5.2;//总胆固醇浓度5.2mmol/L
+                double Creatinine = 140;//肌酐浓度140μmoI/L
+                double Hdlc = 1.21;//高密度脂蛋白胆固醇1.21g/ml
+
                 CacheSysList BaseList = PsBasicInfo.GetBasicInfo(_cnCache, UserId);
-                int age = PsBasicInfo.GetAgeByBirthDay(_cnCache, Convert.ToInt32(BaseList[1]));
-                int Gender = Convert.ToInt32(BaseList[3]);
+                if (BaseList != null)
+                {
+                    if (BaseList[1] != "")
+                    {
+                        Age = PsBasicInfo.GetAgeByBirthDay(_cnCache, Convert.ToInt32(BaseList[1]));//年龄
+                    }
+                    if (BaseList[3] != "")
+                    {
+                        Gender = Convert.ToInt32(BaseList[3]);//性别
+                    }
+                }
                 if (Gender <= 2)
                 {
                     Gender = Gender - 1;
@@ -7195,340 +7225,343 @@ namespace WebService
                 {
                     Gender = 0;
                 }
-                //性别数值调整好了
-                //上面获取了患者的年龄和性别
-                //int SBP = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "Bloodpressure", "Bloodpressure_1"));
-                //int DBP = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "Bloodpressure", "Bloodpressure_2"));
-                int Height = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "Height", "Height_1"));
-                int Weight = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "Weight", "Weight_1"));
+                //上面获取患者的年龄和性别，并调整好数值
+
+                CacheSysList DetailList = PsBasicInfoDetail.GetPatientDetailInfo(_cnCache, UserId);
+                if (DetailList != null)
+                {
+                    if (DetailList[9] != "")
+                    {
+                        Weight = Convert.ToInt32(DetailList[9]);
+                    }
+                    if (DetailList[8] != "")
+                    {
+                        Height = Convert.ToInt32(DetailList[8]);
+                    }
+                }
                 double BMI = Weight / ((Height / 100) ^ 2);
-                //获取了血压和BMI
+                //获取身高，体重和BMI
+
+                string Heart = PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "ECG", "ECG_4");
+                if (Heart != "")
+                {
+                    Heartrate = Convert.ToInt32(Heart);
+                }
+                //获取心率
+
                 int ItemSeq1 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1003_1");
-                int Value1 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1003_1", ItemSeq1));
+                if (ItemSeq1 >= 1)
+                {
+                    Parent = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1003_1", ItemSeq1));
+                }
+                if (Parent > 1)
+                {
+                    Parent = 0;
+                }
                 //获取遗传信息，即父母有无高血压，1是2否3未知
-                if (Value1 > 1)
-                {
-                    Value1 = 0;
-                }
-                //调整遗传信息的数值，否和未知都算0
+
                 int ItemSeq2 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1004_1");
-                int Value2 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1004_1", ItemSeq2));
+                if (ItemSeq2 >= 1)
+                {
+                    Smoke = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1004_1", ItemSeq2));
+                }
+                if (Smoke > 1)
+                {
+                    Smoke = 0;
+                }
                 //获取是否抽烟1是2否3未知
-                if (Value2 > 1)
-                {
-                    Value2 = 0;
-                }
-                //调整抽烟的数值
-                //int AgeDbp = age * DBP;
-                // RiskInfactor = -0.15641 * age - 0.20293 * Gender - 0.05933 * SBP - 0.12847 * DBP - 0.19073 * Value2 - 0.16612 * Value1 - 0.03388 * BMI + 0.00162 * AgeDbp;
-                double a = -0.15641 * age - 0.20293 * Gender - 0.19073 * Value2 - 0.16612 * Value1 - 0.03388 * BMI;
-                string b = a.ToString();
-                string c = age.ToString();
-                Hyper = b + "||" + c;
-                //double e = 2.71828;
-                //HyperRisk[1] = 1-Math.Exp(-Math.Exp(((Math.Log(Math.E,4))- (22.94954+ RiskInfactor))/0.87692));
 
-                return Hyper;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetHypertension", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return "";
-                throw (ex);
-            }
-        }
-
-
-        [WebMethod(Description = "获取harvard五年风险机率 Table:很多  Author:SYF 2015-04-26")]
-        //GetHarvardRisk SYF 2015-04-26 获取harvard五年风险机率      
-        public string GetHarvardRisk(string UserId)
-        {
-            //UserId = "P444";
-            try
-            {
-                string HarvardRisk;
-                double RiskInfactor = 0.0;
-                CacheSysList BaseList = PsBasicInfo.GetBasicInfo(_cnCache, UserId);
-                int age = PsBasicInfo.GetAgeByBirthDay(_cnCache, Convert.ToInt32(BaseList[1]));
-                int Gender = Convert.ToInt32(BaseList[3]);
-                if (Gender > 2)
-                {
-                    Gender = 1;
-                }
-                //性别数值调整好了
-                //上面获取了患者的年龄和性别
-                //int SBP = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "Bloodpressure", "Bloodpressure_1"));
-                int Height = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "Height", "Height_1"));
-                int ItemSeq1 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1004_1");
-                int Value1 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1004_1", ItemSeq1));
-                //获取是否抽烟1是2否3未知
-                if (Value1 > 1)
-                {
-                    Value1 = 0;
-                }
-                //调整抽烟的数值
-                int ItemSeq2 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1002_2");
-                int Value2 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_2", ItemSeq2));
-                if (Value2 > 1)
-                {
-                    Value2 = 0;
-                }
-                //冠心病即心肌梗塞
                 int ItemSeq3 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1002_5");
-                int Value3 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_5", ItemSeq3));
-                if (Value3 > 1)
+                if (ItemSeq3 >= 1)
                 {
-                    Value3 = 0;
+                    Stroke = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_5", ItemSeq3));
                 }
-                //中风
+                if (Stroke > 1)
+                {
+                    Stroke = 0;
+                }
+                //中风M1002_6
+
                 int ItemSeq4 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1002_6");
-                int Value4 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_6", ItemSeq4));
-                if (Value4 > 1)
+                if (ItemSeq4 >= 1)
                 {
-                    Value4 = 0;
+                    Lvh = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_6", ItemSeq4));
                 }
-                //左室高血压即左心室肥大
+                if (Lvh > 1)
+                {
+                    Lvh = 0;
+                }
+                //左心室肥大M1001_2
+
                 int ItemSeq5 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1001_2");
-                int Value5 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1001_2", ItemSeq5));
-                if (Value5 > 1)
+                if (ItemSeq5 >= 1)
                 {
-                    Value5 = 0;
+                    Diabetes = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1001_2", ItemSeq5));
                 }
-                //糖尿病
-                int ItemSeq6 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1001_4");
-                double Value6 = Convert.ToDouble(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1001_4", ItemSeq6));
-                //肌酐浓度
-                int ItemSeq7 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1001_5");
-                double Value7 = Convert.ToDouble(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1001_5", ItemSeq7));
+                if (Diabetes > 1)
+                {
+                    Diabetes = 0;
+                }
+                //糖尿病M1005_1
+
+                int ItemSeq6 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1005_1");
+                if (ItemSeq6 >= 1)
+                {
+                    Treat = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1005_1", ItemSeq6));
+                }
+                if (Treat > 1)
+                {
+                    Treat = 0;
+                }
+                //高血压是否在治疗（是否接受高血压治疗）
+
+                int ItemSeq7 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1002_1");
+                if (ItemSeq7 >= 1)
+                {
+                    Heartattack = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_1", ItemSeq7));
+                }
+                if (Heartattack > 1)
+                {
+                    Heartattack = 0;
+                }
+                //是否有心脏事件（心血管疾病）
+
+                int ItemSeq8 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1002_4");
+                if (ItemSeq8 >= 1)
+                {
+                    Af = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_4", ItemSeq8));
+                }
+                if (Af > 1)
+                {
+                    Af = 0;
+                }
+                //是否有房颤
+
+                int ItemSeq9 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1002_2");
+                if (ItemSeq9 >= 1)
+                {
+                    Chd = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_2", ItemSeq9));
+                }
+                if (Chd > 1)
+                {
+                    Chd = 0;
+                }
+                //是否有冠心病（心肌梗塞）
+
+                int ItemSeq10 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1002_3");
+                if (ItemSeq10 >= 1)
+                {
+                    Valve = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_3", ItemSeq10));
+                }
+                if (Valve > 1)
+                {
+                    Valve = 0;
+                }
+                //是否有心脏瓣膜病
+
+                int ItemSeq11 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1001_5");
+                if (ItemSeq11 >= 1)
+                {
+                    Tcho = Convert.ToDouble(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1001_5", ItemSeq11));
+                }
                 //总胆固醇浓度
-                //以上把所有需要的参数都取到了，下面开始计算，Harvard风险评估是按性别区分的
-                //男性或者未知性别的都按男的算
+
+                int ItemSeq12 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1001_4");
+                if (ItemSeq12 >= 1)
+                {
+                    Creatinine = Convert.ToDouble(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1001_4", ItemSeq12));
+                }
+                //肌酐浓度
+
+                int ItemSeq13 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1001_6");
+                if (ItemSeq13 >= 1)
+                {
+                    Hdlc = Convert.ToDouble(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1001_6", ItemSeq13));
+                }
+                //高密度脂蛋白胆固醇
+
+                //高血压风险，除血压外的风险已经计算好放在Hyperother中，界面上取了血压之后，加上血压的风险即可。
+                double Hyperother = -0.15641 * Age - 0.20293 * Gender - 0.19073 * Smoke - 0.16612 * Parent - 0.03388 * BMI;
+
+                //HarvardRiskInfactor这个变量存的是Harvard风险评估计算公式中的风险因数，界面上需要做的是加上收缩压的风险因数，然后代入公式计算。
+                #region
+                int HarvardRiskInfactor = 0;
                 if (Gender == 1)
                 {
-                    if (age <= 39)
+                    if (Age <= 39)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 19;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 19;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 0;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 0;
                         }
                     }
-                    else if (age <= 44 && age >= 40)
+                    else if (Age <= 44 && Age >= 40)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 7;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 7;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 4;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 4;
                         }
                     }
-                    else if (age <= 49 && age >= 45)
+                    else if (Age <= 49 && Age >= 45)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 7;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 7;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 7;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 7;
                         }
                     }
-                    else if (age <= 54 && age >= 50)
+                    else if (Age <= 54 && Age >= 50)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 11;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 11;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 6;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 6;
                         }
                     }
-                    else if (age <= 59 && age >= 55)
+                    else if (Age <= 59 && Age >= 55)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 14;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 14;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 6;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 6;
                         }
                     }
-                    else if (age <= 64 && age >= 60)
+                    else if (Age <= 64 && Age >= 60)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 18;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 18;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 5;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 5;
                         }
                     }
-                    else if (age <= 69 && age >= 65)
+                    else if (Age <= 69 && Age >= 65)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 22;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 22;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 4;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 4;
                         }
                     }
                     else
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 25;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 25;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 4;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 4;
                         }
                     }
                     //年龄和抽烟的风险值加成
-                    //if (SBP <= 119)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 0;
-                    //}
-                    //else if (SBP >= 120 && SBP <= 129)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 1;
-                    //}
-                    //else if (SBP >= 130 && SBP <= 139)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 2;
-                    //}
-                    //else if (SBP >= 130 && SBP <= 139)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 2;
-                    //}
-                    //else if (SBP >= 140 && SBP <= 149)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 3;
-                    //}
-                    //else if (SBP >= 150 && SBP <= 159)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 4;
-                    //}
-                    //else if (SBP >= 160 && SBP <= 169)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 5;
-                    //}
-                    //else if (SBP >= 170 && SBP <= 179)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 6;
-                    //}
-                    //else if (SBP >= 180 && SBP <= 189)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 8;
-                    //}
-                    //else if (SBP >= 190 && SBP <= 199)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 9;
-                    //}
-                    //else if (SBP >= 200 && SBP <= 209)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 10;
-                    //}
-                    //else
-                    //{
-                    //    RiskInfactor = RiskInfactor + 11;
-                    //}
-
-                    //收缩压的风险值加成
-                    if (Value7 < 5)
+                    if (Tcho < 5)
                     {
-                        RiskInfactor = RiskInfactor + 0;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 0;
                     }
-                    else if (Value7 >= 5.0 && Value7 <= 5.9)
+                    else if (Tcho >= 5.0 && Tcho <= 5.9)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 2;
                     }
-                    else if (Value7 >= 6.0 && Value7 <= 6.9)
+                    else if (Tcho >= 6.0 && Tcho <= 6.9)
                     {
-                        RiskInfactor = RiskInfactor + 4;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 4;
                     }
-                    else if (Value7 >= 7.0 && Value7 <= 7.9)
+                    else if (Tcho >= 7.0 && Tcho <= 7.9)
                     {
-                        RiskInfactor = RiskInfactor + 5;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 5;
                     }
-                    else if (Value7 >= 8.0 && Value7 <= 8.9)
+                    else if (Tcho >= 8.0 && Tcho <= 8.9)
                     {
-                        RiskInfactor = RiskInfactor + 7;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 7;
                     }
                     else
                     {
-                        RiskInfactor = RiskInfactor + 9;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 9;
                     }
                     //总胆固醇浓度风险值加成
                     if (Height < 145)
                     {
-                        RiskInfactor = RiskInfactor + 6;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 6;
                     }
                     else if (Height >= 145 && Height <= 154)
                     {
-                        RiskInfactor = RiskInfactor + 4;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 4;
                     }
                     else if (Height >= 155 && Height <= 164)
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 3;
                     }
                     else if (Height >= 165 && Height <= 174)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 2;
                     }
                     else
                     {
-                        RiskInfactor = RiskInfactor + 0;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 0;
                     }
                     //身高风险值加成
-                    if (Value6 < 50)
+                    if (Creatinine < 50)
                     {
-                        RiskInfactor = RiskInfactor + 0;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 0;
                     }
-                    else if (Value6 >= 50 && Value6 <= 69)
+                    else if (Creatinine >= 50 && Creatinine <= 69)
                     {
-                        RiskInfactor = RiskInfactor + 1;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 1;
                     }
-                    else if (Value6 >= 70 && Value6 <= 89)
+                    else if (Creatinine >= 70 && Creatinine <= 89)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 2;
                     }
-                    else if (Value6 >= 90 && Value6 <= 109)
+                    else if (Creatinine >= 90 && Creatinine <= 109)
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 3;
                     }
                     else
                     {
-                        RiskInfactor = RiskInfactor + 4;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 4;
                     }
                     //肌酐浓度风险值加成
-                    if (Value2 == 1)
+                    if (Chd == 1)
                     {
-                        RiskInfactor = RiskInfactor + 8;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 8;
                     }
                     //心肌梗塞（冠心病）风险值加成
-                    if (Value3 == 1)
+                    if (Stroke == 1)
                     {
-                        RiskInfactor = RiskInfactor + 8;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 8;
                     }
                     //中风风险值加成 
-                    if (Value4 == 1)
+                    if (Lvh == 1)
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 3;
                     }
                     //左室高血压（左心室肥大）风险值加成
-                    if (Value5 == 1)
+                    if (Diabetes == 1)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 2;
                     }
                     //糖尿病风险值加成
                 }
@@ -7536,1102 +7569,616 @@ namespace WebService
 
                 else
                 {
-                    if (age <= 39)
+                    if (Age <= 39)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 13;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 13;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 0;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 0;
                         }
                     }
-                    else if (age <= 44 && age >= 40)
+                    else if (Age <= 44 && Age >= 40)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 12;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 12;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 5;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 5;
                         }
                     }
-                    else if (age <= 49 && age >= 45)
+                    else if (Age <= 49 && Age >= 45)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 11;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 11;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 9;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 9;
                         }
                     }
-                    else if (age <= 54 && age >= 50)
+                    else if (Age <= 54 && Age >= 50)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 10;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 10;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 14;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 14;
                         }
                     }
-                    else if (age <= 59 && age >= 55)
+                    else if (Age <= 59 && Age >= 55)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 10;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 10;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 18;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 18;
                         }
                     }
-                    else if (age <= 64 && age >= 60)
+                    else if (Age <= 64 && Age >= 60)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 9;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 9;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 23;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 23;
                         }
                     }
-                    else if (age <= 69 && age >= 65)
+                    else if (Age <= 69 && Age >= 65)
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 9;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 9;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 27;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 27;
                         }
                     }
                     else
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 8;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 8;
                         }
                         else
                         {
-                            RiskInfactor = RiskInfactor + 32;
+                            HarvardRiskInfactor = HarvardRiskInfactor + 32;
                         }
                     }
                     //年龄和抽烟的风险值加成
-                    //if (SBP <= 119)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 0;
-                    //}
-                    //else if (SBP >= 120 && SBP <= 129)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 1;
-                    //}
-                    //else if (SBP >= 130 && SBP <= 139)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 2;
-                    //}
-                    //else if (SBP >= 130 && SBP <= 139)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 2;
-                    //}
-                    //else if (SBP >= 140 && SBP <= 149)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 3;
-                    //}
-                    //else if (SBP >= 150 && SBP <= 159)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 4;
-                    //}
-                    //else if (SBP >= 160 && SBP <= 169)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 5;
-                    //}
-                    //else if (SBP >= 170 && SBP <= 179)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 6;
-                    //}
-                    //else if (SBP >= 180 && SBP <= 189)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 7;
-                    //}
-                    //else if (SBP >= 190 && SBP <= 199)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 8;
-                    //}
-                    //else if (SBP >= 200 && SBP <= 209)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 9;
-                    //}
-                    //else
-                    //{
-                    //    RiskInfactor = RiskInfactor + 10;
-                    //}
-
-                    //收缩压的风险值加成
-                    if (Value7 < 5)
+                    if (Tcho < 5)
                     {
-                        RiskInfactor = RiskInfactor + 0;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 0;
                     }
-                    else if (Value7 >= 5.0 && Value7 <= 5.9)
+                    else if (Tcho >= 5.0 && Tcho <= 5.9)
                     {
-                        RiskInfactor = RiskInfactor + 0;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 0;
                     }
-                    else if (Value7 >= 6.0 && Value7 <= 6.9)
+                    else if (Tcho >= 6.0 && Tcho <= 6.9)
                     {
-                        RiskInfactor = RiskInfactor + 1;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 1;
                     }
-                    else if (Value7 >= 7.0 && Value7 <= 7.9)
+                    else if (Tcho >= 7.0 && Tcho <= 7.9)
                     {
-                        RiskInfactor = RiskInfactor + 1;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 1;
                     }
-                    else if (Value7 >= 8.0 && Value7 <= 8.9)
+                    else if (Tcho >= 8.0 && Tcho <= 8.9)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 2;
                     }
                     else
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 2;
                     }
                     //总胆固醇浓度风险值加成
                     if (Height < 145)
                     {
-                        RiskInfactor = RiskInfactor + 6;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 6;
                     }
                     else if (Height >= 145 && Height <= 154)
                     {
-                        RiskInfactor = RiskInfactor + 4;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 4;
                     }
                     else if (Height >= 155 && Height <= 164)
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 3;
                     }
                     else if (Height >= 165 && Height <= 174)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 2;
                     }
                     else
                     {
-                        RiskInfactor = RiskInfactor + 0;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 0;
                     }
                     //身高风险值加成
-                    if (Value6 < 50)
+                    if (Creatinine < 50)
                     {
-                        RiskInfactor = RiskInfactor + 0;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 0;
                     }
-                    else if (Value6 >= 50 && Value6 <= 69)
+                    else if (Creatinine >= 50 && Creatinine <= 69)
                     {
-                        RiskInfactor = RiskInfactor + 1;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 1;
                     }
-                    else if (Value6 >= 70 && Value6 <= 89)
+                    else if (Creatinine >= 70 && Creatinine <= 89)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 2;
                     }
-                    else if (Value6 >= 90 && Value6 <= 109)
+                    else if (Creatinine >= 90 && Creatinine <= 109)
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 3;
                     }
                     else
                     {
-                        RiskInfactor = RiskInfactor + 4;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 4;
                     }
                     //肌酐浓度风险值加成
-                    if (Value2 == 1)
+                    if (Chd == 1)
                     {
-                        RiskInfactor = RiskInfactor + 8;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 8;
                     }
                     //心肌梗塞（冠心病）风险值加成
-                    if (Value3 == 1)
+                    if (Stroke == 1)
                     {
-                        RiskInfactor = RiskInfactor + 8;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 8;
                     }
                     //中风风险值加成 
-                    if (Value4 == 1)
+                    if (Lvh == 1)
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 3;
                     }
                     //左室高血压（左心室肥大）风险值加成
-                    if (Value5 == 1)
+                    if (Diabetes == 1)
                     {
-                        RiskInfactor = RiskInfactor + 9;
+                        HarvardRiskInfactor = HarvardRiskInfactor + 9;
                     }
                     //糖尿病风险值加成
                 }
                 //以上是女性风险值
-                //HarvardRisk = 6.304 * Math.Pow(10, -8) * Math.Pow(RiskInfactor, 5) - 5.027 * Math.Pow(10, -6) * Math.Pow(RiskInfactor, 4) + 0.0001768 * Math.Pow(RiskInfactor, 3) - 0.001998 * Math.Pow(RiskInfactor, 2) + 0.01294 * RiskInfactor + 0.0409;
+                //HarvardRisk = 6.304 * Math.Pow(10, -8) * Math.Pow(HarvardRiskInfactor, 5) - 5.027 * Math.Pow(10, -6) * Math.Pow(HarvardRiskInfactor, 4) + 0.0001768 * Math.Pow(HarvardRiskInfactor, 3) - 0.001998 * Math.Pow(HarvardRiskInfactor, 2) + 0.01294 * HarvardRiskInfactor + 0.0409;
                 // HarvardRisk = HarvardRisk / 100;
-                string a = RiskInfactor.ToString();
-                string b = Gender.ToString();
-                HarvardRisk = a + "||" + b;
-                return HarvardRisk;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetHarvardRisk", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return "";
-                throw (ex);
-            }
-        }
+                #endregion
 
-
-
-        [WebMethod(Description = "获取Framingham心血管疾病评估十年风险 Table:很多  Author:SYF 2015-04-26")]
-        //GetFramingham SYF 2015-04-26 获取Framingham心血管疾病评估十年风险      
-        public double GetFramingham(string UserId)
-        {
-            //UserId = "P444";
-            try
-            {
-                double FraminghamRisk = 0.0;
-                double RiskInfactor = 0.0;
-                CacheSysList BaseList = PsBasicInfo.GetBasicInfo(_cnCache, UserId);
-                int age = PsBasicInfo.GetAgeByBirthDay(_cnCache, Convert.ToInt32(BaseList[1]));
-                int Gender = Convert.ToInt32(BaseList[3]);
-                if (Gender > 2)
-                {
-                    Gender = 1;
-                }
-                //性别数值调整好了
-                //上面获取了患者的年龄和性别
-                int SBP = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "Bloodpressure", "Bloodpressure_1"));
-                int Height = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "Height", "Height_1"));
-                int Weight = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "Weight", "Weight_1"));
-                double BMI = Weight / ((Height / 100) ^ 2);
-                //获取了收缩压和BMI
-                int ItemSeq1 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1004_1");
-                int Value1 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1004_1", ItemSeq1));
-                //获取是否抽烟1是2否3未知
-                int ItemSeq2 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1001_2");
-                int Value2 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1001_2", ItemSeq2));
-                //糖尿病
-                int ItemSeq3 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1005_1");
-                int Value3 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1005_1", ItemSeq3));
-                //高血压是否在治疗（是否接受过治疗）
-                int ItemSeq4 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1001_5");
-                double Value4 = Convert.ToDouble(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1001_5", ItemSeq4));
-                //总胆固醇
-                int ItemSeq5 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1001_6");
-                double Value5 = Convert.ToDouble(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1001_6", ItemSeq5));
-                //高密度脂蛋白胆固醇
+                //FraminghamRiskInfactor这个变量存的是Framingham风险评估计算公式中的风险因数，界面上需要做的是加上收缩压的风险因数，然后代入公式计算。
+                //这个Framingham模型也是需要收缩压值的，分为接受过治疗的血压和未接受过治疗的血压，模型分为男女进行计算，因为不同性别公式不同
+                #region
+                double FraminghamRiskInfactor = 0.0;
                 if (Gender == 1) //男性
                 {
-                    RiskInfactor = RiskInfactor + Math.Log(age) * 3.06117;//性别
-                    RiskInfactor = RiskInfactor + Math.Log(Value4) * 1.12370;//总胆固醇
-                    RiskInfactor = RiskInfactor + Math.Log(Value5) * (-0.93263);//高密度脂蛋白胆固醇
-                    if (Value3 == 1)
+                    FraminghamRiskInfactor = FraminghamRiskInfactor + Math.Log10(Age) * 3.06117;//性别
+                    FraminghamRiskInfactor = FraminghamRiskInfactor + Math.Log10(Tcho) * 1.12370;//总胆固醇
+                    FraminghamRiskInfactor = FraminghamRiskInfactor + Math.Log10(Hdlc) * (-0.93263);//高密度脂蛋白胆固醇
+                    if (Smoke == 1)
                     {
-                        RiskInfactor = RiskInfactor + Math.Log(SBP) * 1.99881;
+                        FraminghamRiskInfactor = FraminghamRiskInfactor + 0.65451;//抽烟
                     }
-                    else
+                    if (Diabetes == 1)
                     {
-                        RiskInfactor = RiskInfactor + Math.Log(SBP) * 1.93303;
+                        FraminghamRiskInfactor = FraminghamRiskInfactor + 0.57367;//抽烟
                     }
-                    //高血压是否在治疗；收缩压
-                    if (Value1 == 1)
-                    {
-                        RiskInfactor = RiskInfactor + 0.65451;//抽烟
-                    }
-                    if (Value2 == 1)
-                    {
-                        RiskInfactor = RiskInfactor + 0.57367;//抽烟
-                    }
-                    //HarvardRisk = 4323 * Math.Exp(-Math.Pow(((RiskInfactor-185.2)/52.81),2));
-                    FraminghamRisk = 1 - Math.Pow(0.95015, (Math.Exp(RiskInfactor - 26.1931)));
-                    return FraminghamRisk;
+                    //HarvardRisk = 4323 * Math.Exp(-Math.Pow(((FraminghamRiskInfactor-185.2)/52.81),2));
+                    //FraminghamRisk = 1 - Math.Pow(0.95015, (Math.Exp(FraminghamRiskInfactor - 26.1931)));
                 }
                 else //女性
                 {
-                    RiskInfactor = RiskInfactor + Math.Log(age) * 2.3288;//性别
-                    RiskInfactor = RiskInfactor + Math.Log(Value4) * 1.20904;//总胆固醇
-                    RiskInfactor = RiskInfactor + Math.Log(Value5) * (-0.70833);//高密度脂蛋白胆固醇
-                    if (Value3 == 1)
+                    FraminghamRiskInfactor = FraminghamRiskInfactor + Math.Log10(Age) * 2.3288;//性别
+                    FraminghamRiskInfactor = FraminghamRiskInfactor + Math.Log10(Tcho) * 1.20904;//总胆固醇
+                    FraminghamRiskInfactor = FraminghamRiskInfactor + Math.Log10(Hdlc) * (-0.70833);//高密度脂蛋白胆固醇
+                    if (Smoke == 1)
                     {
-                        RiskInfactor = RiskInfactor + Math.Log(SBP) * 2.82263;
+                        FraminghamRiskInfactor = FraminghamRiskInfactor + 0.52873;//抽烟
                     }
-                    else
+                    if (Diabetes == 1)
                     {
-                        RiskInfactor = RiskInfactor + Math.Log(SBP) * 2.76157;
+                        FraminghamRiskInfactor = FraminghamRiskInfactor + 0.69154;//抽烟
                     }
-                    //高血压是否在治疗；收缩压
-                    if (Value1 == 1)
-                    {
-                        RiskInfactor = RiskInfactor + 0.52873;//抽烟
-                    }
-                    if (Value2 == 1)
-                    {
-                        RiskInfactor = RiskInfactor + 0.69154;//抽烟
-                    }
-                    //HarvardRisk = 4323 * Math.Exp(-Math.Pow(((RiskInfactor-185.2)/52.81),2));
-                    FraminghamRisk = 1 - Math.Pow(0.88936, (Math.Exp(RiskInfactor - 23.9802)));
-                    return FraminghamRisk;
+                    // FraminghamRisk = 1 - Math.Pow(0.88936, (Math.Exp(FraminghamRiskInfactor - 23.9802)));
                 }
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetFramingham", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return 0.0;
-                throw (ex);
-            }
-        }
+                #endregion
 
-
-        [WebMethod(Description = "获取十年中风风险 Table:很多  Author:SYF 2015-04-26")]
-        //GetStroke SYF 2015-04-26 获取十年中风风险     
-        public string GetStroke(string UserId)
-        {
-            //UserId = "P444";
-            try
-            {
-                string StrokeRisk;
-                int RiskInfactor = 0;
-                CacheSysList BaseList = PsBasicInfo.GetBasicInfo(_cnCache, UserId);
-                int age = PsBasicInfo.GetAgeByBirthDay(_cnCache, Convert.ToInt32(BaseList[1]));
-                int Gender = Convert.ToInt32(BaseList[3]);
-                if (Gender > 2)
-                {
-                    Gender = 1;
-                }
-                //性别数值调整好了
-                //上面获取了患者的年龄和性别
-                //int SBP = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "Bloodpressure", "Bloodpressure_1"));
-                //获取了收缩压
-                int ItemSeq1 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1004_1");
-                int Value1 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1004_1", ItemSeq1));
-                //获取是否抽烟1是2否3未知
-                int ItemSeq2 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1001_2");
-                int Value2 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1001_2", ItemSeq2));
-                //糖尿病
-                int ItemSeq3 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1005_1");
-                int Value3 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1005_1", ItemSeq3));
-                //高血压是否在治疗（是否接受过治疗）
-                int ItemSeq4 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1002_1");
-                int Value4 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_1", ItemSeq4));
-                //是否有心血管疾病史（心脏事件）
-                int ItemSeq5 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1002_4");
-                int Value5 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_4", ItemSeq5));
-                //是否有房颤
-                int ItemSeq6 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1002_6");
-                int Value6 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_6", ItemSeq6));
-                //左室高血压（左心室肥大）
+                //StrokeRiskInfactor这个变量存的是中风风险评估计算公式中的风险因数，界面上需要做的是加上收缩压的风险因数，然后计算。
+                #region
+                int StrokeRiskInfactor = 0;
                 if (Gender == 1) //男性
                 {
-                    if (age <= 56)
+                    if (Age <= 56)
                     {
-                        RiskInfactor = RiskInfactor + 0;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 0;
                     }
-                    else if (age >= 57 && age <= 59)
+                    else if (Age >= 57 && Age <= 59)
                     {
-                        RiskInfactor = RiskInfactor + 1;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 1;
                     }
-                    else if (age >= 60 && age <= 62)
+                    else if (Age >= 60 && Age <= 62)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 2;
                     }
-                    else if (age >= 63 && age <= 65)
+                    else if (Age >= 63 && Age <= 65)
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 3;
                     }
-                    else if (age >= 66 && age <= 68)
+                    else if (Age >= 66 && Age <= 68)
                     {
-                        RiskInfactor = RiskInfactor + 4;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 4;
                     }
-                    else if (age >= 69 && age <= 72)
+                    else if (Age >= 69 && Age <= 72)
                     {
-                        RiskInfactor = RiskInfactor + 5;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 5;
                     }
-                    else if (age >= 73 && age <= 75)
+                    else if (Age >= 73 && Age <= 75)
                     {
-                        RiskInfactor = RiskInfactor + 6;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 6;
                     }
-                    else if (age >= 76 && age <= 78)
+                    else if (Age >= 76 && Age <= 78)
                     {
-                        RiskInfactor = RiskInfactor + 7;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 7;
                     }
-                    else if (age >= 79 && age <= 81)
+                    else if (Age >= 79 && Age <= 81)
                     {
-                        RiskInfactor = RiskInfactor + 8;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 8;
                     }
-                    else if (age >= 82 && age <= 84)
+                    else if (Age >= 82 && Age <= 84)
                     {
-                        RiskInfactor = RiskInfactor + 9;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 9;
                     }
                     else
                     {
-                        RiskInfactor = RiskInfactor + 10;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 10;
                     }
-                    //年龄的风险加权值
-                    //if (Value3 != 1) //没有治疗过高血压的情况
-                    //{
-                    //    if (SBP <= 105)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 0;
-                    //    }
-                    //    else if (SBP >= 106 && SBP <= 115)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 1;
-                    //    }
-                    //    else if (SBP >= 116 && SBP <= 125)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 2;
-                    //    }
-                    //    else if (SBP >= 126 && SBP <= 135)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 3;
-                    //    }
-                    //    else if (SBP >= 136 && SBP <= 145)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 4;
-                    //    }
-                    //    else if (SBP >= 146 && SBP <= 155)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 5;
-                    //    }
-                    //    else if (SBP >= 156 && SBP <= 165)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 6;
-                    //    }
-                    //    else if (SBP >= 166 && SBP <= 175)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 7;
-                    //    }
-                    //    else if (SBP >= 176 && SBP <= 185)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 8;
-                    //    }
-                    //    else if (SBP >= 186 && SBP <= 195)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 9;
-                    //    }
-                    //    else
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 10;
-                    //    }
-                    //}
-                    //else//治疗过高血压的情况
-                    //{
-                    //    if (SBP <= 105)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 0;
-                    //    }
-                    //    else if (SBP >= 106 && SBP <= 112)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 1;
-                    //    }
-                    //    else if (SBP >= 113 && SBP <= 117)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 2;
-                    //    }
-                    //    else if (SBP >= 118 && SBP <= 123)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 3;
-                    //    }
-                    //    else if (SBP >= 124 && SBP <= 129)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 4;
-                    //    }
-                    //    else if (SBP >= 130 && SBP <= 135)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 5;
-                    //    }
-                    //    else if (SBP >= 136 && SBP <= 142)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 6;
-                    //    }
-                    //    else if (SBP >= 143 && SBP <= 150)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 7;
-                    //    }
-                    //    else if (SBP >= 151 && SBP <= 161)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 8;
-                    //    }
-                    //    else if (SBP >= 162 && SBP <= 176)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 9;
-                    //    }
-                    //    else
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 10;
-                    //    }
-                    //}
-                    //收缩压，是否有高血压治疗风险值加成
-                    if (Value2 == 1)
+                    if (Diabetes == 1)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 2;
                     }
                     //糖尿病风险值加成
-                    if (Value1 == 1)
+                    if (Smoke == 1)
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 3;
                     }
                     //吸烟风险值加成
-                    if (Value4 == 1)
+                    if (Heartattack == 1)
                     {
-                        RiskInfactor = RiskInfactor + 4;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 4;
                     }
                     //心血管疾病史（心脏事件）风险值加成
-                    if (Value5 == 1)
+                    if (Af == 1)
                     {
-                        RiskInfactor = RiskInfactor + 4;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 4;
                     }
                     //房颤风险值加成
-                    if (Value6 == 1)
+                    if (Lvh == 1)
                     {
-                        RiskInfactor = RiskInfactor + 5;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 5;
                     }
                     //左室高血压（左心室肥大）风险值加成
                     //double[] Risk = new double[] { 3, 3, 4, 4, 5, 5, 6, 7, 8, 10, 11, 13, 15, 17, 20, 22, 26, 29, 33, 37, 42, 47, 52, 57, 63, 68, 74, 79, 84, 88};
-                    //StrokeRisk = Risk[RiskInfactor-1] / 100;
-                    string a = RiskInfactor.ToString();
-                    string b = Gender.ToString();
-                    string c = Value3.ToString();
-                    StrokeRisk = a + "||" + b + "||" + c;
-                    return StrokeRisk;
+                    //StrokeRisk = Risk[StrokeRiskInfactor-1] / 100;
                 }
                 else //女性
                 {
-                    if (age <= 56)
+                    if (Age <= 56)
                     {
-                        RiskInfactor = RiskInfactor + 0;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 0;
                     }
-                    else if (age >= 57 && age <= 59)
+                    else if (Age >= 57 && Age <= 59)
                     {
-                        RiskInfactor = RiskInfactor + 1;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 1;
                     }
-                    else if (age >= 60 && age <= 62)
+                    else if (Age >= 60 && Age <= 62)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 2;
                     }
-                    else if (age >= 63 && age <= 64)
+                    else if (Age >= 63 && Age <= 64)
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 3;
                     }
-                    else if (age >= 65 && age <= 67)
+                    else if (Age >= 65 && Age <= 67)
                     {
-                        RiskInfactor = RiskInfactor + 4;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 4;
                     }
-                    else if (age >= 68 && age <= 70)
+                    else if (Age >= 68 && Age <= 70)
                     {
-                        RiskInfactor = RiskInfactor + 5;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 5;
                     }
-                    else if (age >= 71 && age <= 73)
+                    else if (Age >= 71 && Age <= 73)
                     {
-                        RiskInfactor = RiskInfactor + 6;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 6;
                     }
-                    else if (age >= 74 && age <= 76)
+                    else if (Age >= 74 && Age <= 76)
                     {
-                        RiskInfactor = RiskInfactor + 7;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 7;
                     }
-                    else if (age >= 77 && age <= 78)
+                    else if (Age >= 77 && Age <= 78)
                     {
-                        RiskInfactor = RiskInfactor + 8;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 8;
                     }
-                    else if (age >= 79 && age <= 81)
+                    else if (Age >= 79 && Age <= 81)
                     {
-                        RiskInfactor = RiskInfactor + 9;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 9;
                     }
                     else
                     {
-                        RiskInfactor = RiskInfactor + 10;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 10;
                     }
-                    //年龄的风险加权值
-                    //if (Value3 != 1) //没有治疗过高血压的情况
-                    //{
-                    //    if (SBP <= 94)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 0;
-                    //    }
-                    //    else if (SBP >= 95 && SBP <= 106)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 1;
-                    //    }
-                    //    else if (SBP >= 107 && SBP <= 118)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 2;
-                    //    }
-                    //    else if (SBP >= 119 && SBP <= 130)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 3;
-                    //    }
-                    //    else if (SBP >= 131 && SBP <= 143)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 4;
-                    //    }
-                    //    else if (SBP >= 144 && SBP <= 155)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 5;
-                    //    }
-                    //    else if (SBP >= 156 && SBP <= 167)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 6;
-                    //    }
-                    //    else if (SBP >= 168 && SBP <= 180)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 7;
-                    //    }
-                    //    else if (SBP >= 181 && SBP <= 192)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 8;
-                    //    }
-                    //    else if (SBP >= 193 && SBP <= 204)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 9;
-                    //    }
-                    //    else
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 10;
-                    //    }
-                    //}
-                    //else//治疗过高血压的情况
-                    //{
-                    //    if (SBP <= 94)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 0;
-                    //    }
-                    //    else if (SBP >= 95 && SBP <= 106)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 1;
-                    //    }
-                    //    else if (SBP >= 107 && SBP <= 113)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 2;
-                    //    }
-                    //    else if (SBP >= 114 && SBP <= 119)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 3;
-                    //    }
-                    //    else if (SBP >= 120 && SBP <= 125)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 4;
-                    //    }
-                    //    else if (SBP >= 126 && SBP <= 131)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 5;
-                    //    }
-                    //    else if (SBP >= 132 && SBP <= 139)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 6;
-                    //    }
-                    //    else if (SBP >= 140 && SBP <= 148)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 7;
-                    //    }
-                    //    else if (SBP >= 149 && SBP <= 160)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 8;
-                    //    }
-                    //    else if (SBP >= 161 && SBP <= 204)
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 9;
-                    //    }
-                    //    else
-                    //    {
-                    //        RiskInfactor = RiskInfactor + 10;
-                    //    }
-                    //}
-                    //收缩压，是否有高血压治疗风险值加成
-                    if (Value2 == 1)
+                    if (Diabetes == 1)
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 3;
                     }
                     //糖尿病风险值加成
-                    if (Value1 == 1)
+                    if (Smoke == 1)
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 3;
                     }
                     //吸烟风险值加成
-                    if (Value4 == 1)
+                    if (Heartattack == 1)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 2;
                     }
                     //心血管疾病史（心脏事件）风险值加成
-                    if (Value5 == 1)
+                    if (Af == 1)
                     {
-                        RiskInfactor = RiskInfactor + 6;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 6;
                     }
                     //房颤风险值加成
-                    if (Value6 == 1)
+                    if (Lvh == 1)
                     {
-                        RiskInfactor = RiskInfactor + 4;
+                        StrokeRiskInfactor = StrokeRiskInfactor + 4;
                     }
                     //左室高血压（左心室肥大）风险值加成
                     // double[] Risk = new double[] { 1, 1, 2, 2, 2, 3, 4, 4, 5, 6, 8, 9, 11, 13, 16, 19, 23, 27, 32, 37, 43, 50, 57, 64, 71, 78, 84};
-                    //StrokeRisk = Risk[RiskInfactor-1] / 100;
-                    string a = RiskInfactor.ToString();
-                    string b = Gender.ToString();
-                    string c = Value3.ToString();
-                    StrokeRisk = a + "||" + b + "||" + c;
-                    return StrokeRisk;
+                    //StrokeRisk = Risk[StrokeRiskInfactor-1] / 100;
                 }
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetStroke", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return "";
-                throw (ex);
-            }
-        }
+                #endregion
 
-        [WebMethod(Description = "获取四年心衰风险 Table:很多  Author:SYF 2015-04-26")]
-        //GetHeartFailure SYF 2015-04-26 获取四年心衰风险     
-        public string GetHeartFailure(string UserId)
-        {
-            //UserId = "P444";
-            try
-            {
-                string HeartFailureRisk;
-                int RiskInfactor = 0;
-                CacheSysList BaseList = PsBasicInfo.GetBasicInfo(_cnCache, UserId);
-                int age = PsBasicInfo.GetAgeByBirthDay(_cnCache, Convert.ToInt32(BaseList[1]));
-                int Gender = Convert.ToInt32(BaseList[3]);
-                if (Gender > 2)
-                {
-                    Gender = 1;
-                }
-                //性别数值调整好了
-                //上面获取了患者的年龄和性别
-                //int SBP = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "Bloodpressure", "Bloodpressure_1"));
-                //获取了收缩压
-                int ItemSeq1 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1001_2");
-                int Value1 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1001_2", ItemSeq1));
-                //糖尿病
-                int ItemSeq2 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1002_6");
-                int Value2 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_6", ItemSeq2));
-                //左室高血压（左心室肥大）
-                int ItemSeq3 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1002_2");
-                int Value3 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_2", ItemSeq3));
-                //冠心病
-                int ItemSeq4 = PsBasicInfoDetail.GetMaxItemSeq(_cnCache, UserId, "M1", "M1002_3");
-                int Value4 = Convert.ToInt32(PsBasicInfoDetail.GetValue(_cnCache, UserId, "M1", "M1002_3", ItemSeq4));
-                //心脏瓣膜疾病
-                int Height = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "Height", "Height_1"));
-                int Weight = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "Weight", "Weight_1"));
-                double BMI = Weight / ((Height / 100) ^ 2);
-                //获取BMI
-                int Heart = Convert.ToInt32(PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, UserId, "ECG", "ECG_4"));
-                //获取心率
+                //HeartFailureRiskInfactor这个变量存的是心衰风险评估计算公式中的风险因数，界面上需要做的是加上收缩压的风险因数，然后计算。
+                #region
+                int HeartFailureRiskInfactor = 0;
                 if (Gender == 1) //男性
                 {
-                    if (age <= 49)
+                    #region
+                    if (Age <= 49)
                     {
-                        RiskInfactor = RiskInfactor + 0;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 0;
                     }
-                    else if (age >= 50 && age <= 54)
+                    else if (Age >= 50 && Age <= 54)
                     {
-                        RiskInfactor = RiskInfactor + 1;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 1;
                     }
-                    else if (age >= 55 && age <= 59)
+                    else if (Age >= 55 && Age <= 59)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 2;
                     }
-                    else if (age >= 60 && age <= 64)
+                    else if (Age >= 60 && Age <= 64)
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 3;
                     }
-                    else if (age >= 65 && age <= 69)
+                    else if (Age >= 65 && Age <= 69)
                     {
-                        RiskInfactor = RiskInfactor + 4;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 4;
                     }
-                    else if (age >= 70 && age <= 74)
+                    else if (Age >= 70 && Age <= 74)
                     {
-                        RiskInfactor = RiskInfactor + 5;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 5;
                     }
-                    else if (age >= 75 && age <= 79)
+                    else if (Age >= 75 && Age <= 79)
                     {
-                        RiskInfactor = RiskInfactor + 6;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 6;
                     }
-                    else if (age >= 80 && age <= 84)
+                    else if (Age >= 80 && Age <= 84)
                     {
-                        RiskInfactor = RiskInfactor + 7;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 7;
                     }
-                    else if (age >= 85 && age <= 89)
+                    else if (Age >= 85 && Age <= 89)
                     {
-                        RiskInfactor = RiskInfactor + 8;
-                    }
-                    else
-                    {
-                        RiskInfactor = RiskInfactor + 9;
-                    }
-                    //年龄的风险加权值
-                    //if (SBP <= 119)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 0;
-                    //}
-                    //else if (SBP >= 120 && SBP <= 139)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 1;
-                    //}
-                    //else if (SBP >= 140 && SBP <= 169)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 2;
-                    //}
-                    //else if (SBP >= 170 && SBP <= 189)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 3;
-                    //}
-                    //else if (SBP >= 190 && SBP <= 219)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 4;
-                    //}
-                    //else
-                    //{
-                    //    RiskInfactor = RiskInfactor + 5;
-                    //}
-                    //收缩压风险值加成
-                    if (Heart <= 54)
-                    {
-                        RiskInfactor = RiskInfactor + 0;
-                    }
-                    else if (Heart >= 55 && Heart <= 64)
-                    {
-                        RiskInfactor = RiskInfactor + 1;
-                    }
-                    else if (Heart >= 65 && Heart <= 79)
-                    {
-                        RiskInfactor = RiskInfactor + 2;
-                    }
-                    else if (Heart >= 80 && Heart <= 89)
-                    {
-                        RiskInfactor = RiskInfactor + 3;
-                    }
-                    else if (Heart >= 90 && Heart <= 104)
-                    {
-                        RiskInfactor = RiskInfactor + 4;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 8;
                     }
                     else
                     {
-                        RiskInfactor = RiskInfactor + 5;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 9;
+                    }
+                    if (Heartrate <= 54)
+                    {
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 0;
+                    }
+                    else if (Heartrate >= 55 && Heartrate <= 64)
+                    {
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 1;
+                    }
+                    else if (Heartrate >= 65 && Heartrate <= 79)
+                    {
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 2;
+                    }
+                    else if (Heartrate >= 80 && Heartrate <= 89)
+                    {
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 3;
+                    }
+                    else if (Heartrate >= 90 && Heartrate <= 104)
+                    {
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 4;
+                    }
+                    else
+                    {
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 5;
                     }
                     //心率风险值加成
-                    if (Value2 == 1)
+                    if (Lvh == 1)
                     {
-                        RiskInfactor = RiskInfactor + 4;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 4;
                     }
                     //左心室肥大（左室高血压）风险值加成
-                    if (Value3 == 1)
+                    if (Chd == 1)
                     {
-                        RiskInfactor = RiskInfactor + 8;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 8;
                     }
                     //冠心病风险值加成
-                    if (Value4 == 1)
+                    if (Valve == 1)
                     {
-                        RiskInfactor = RiskInfactor + 5;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 5;
                     }
                     //瓣膜疾病风险值加成
-                    if (Value1 == 1)
+                    if (Smoke == 1)
                     {
-                        RiskInfactor = RiskInfactor + 1;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 1;
                     }
                     //糖尿病风险值加成
-                    //if (RiskInfactor <= 5)
-                    //{
-                    //    HeartFailureRisk = 1;
-                    //}
-                    //else if (RiskInfactor > 5 && RiskInfactor < 14)
-                    //{
-                    //    HeartFailureRisk = 3;
-                    //}
-                    //else if (RiskInfactor >= 14 && RiskInfactor < 16)
-                    //{
-                    //    HeartFailureRisk = 5;
-                    //}
-                    //else if (RiskInfactor >= 16 && RiskInfactor < 18)
-                    //{
-                    //    HeartFailureRisk = 8;
-                    //}
-                    //else if (RiskInfactor >= 18 && RiskInfactor < 20)
-                    //{
-                    //    HeartFailureRisk = 11;
-                    //}
-                    //else if (RiskInfactor >= 20 && RiskInfactor < 22)
-                    //{
-                    //    HeartFailureRisk = 11;
-                    //}
-                    //else if (RiskInfactor >= 22 && RiskInfactor < 24)
-                    //{
-                    //    HeartFailureRisk = 22;
-                    //}
-                    //else if (RiskInfactor >= 24 && RiskInfactor < 25)
-                    //{
-                    //    HeartFailureRisk = 30;
-                    //}
-                    //else if (RiskInfactor >= 25 && RiskInfactor < 26)
-                    //{
-                    //    HeartFailureRisk = 34;
-                    //}
-                    //else if (RiskInfactor >= 26 && RiskInfactor < 27)
-                    //{
-                    //    HeartFailureRisk = 39;
-                    //}
-                    //else if (RiskInfactor >= 27 && RiskInfactor < 28)
-                    //{
-                    //    HeartFailureRisk = 44;
-                    //}
-                    //else if (RiskInfactor >= 28 && RiskInfactor < 29)
-                    //{
-                    //    HeartFailureRisk = 49;
-                    //}
-                    //else if (RiskInfactor >= 29 && RiskInfactor < 30)
-                    //{
-                    //    HeartFailureRisk = 54;
-                    //}
-                    //else 
-                    //{
-                    //    HeartFailureRisk = 59;
-                    //}
-                    //HeartFailureRisk = HeartFailureRisk / 100;
-                    string a = RiskInfactor.ToString();
-                    string b = Gender.ToString();
-                    HeartFailureRisk = a + "||" + b;
-                    return HeartFailureRisk;
+                    #endregion
                 }
                 else //女性
                 {
-                    if (age <= 49)
+                    #region
+                    if (Age <= 49)
                     {
-                        RiskInfactor = RiskInfactor + 0;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 0;
                     }
-                    else if (age >= 50 && age <= 54)
+                    else if (Age >= 50 && Age <= 54)
                     {
-                        RiskInfactor = RiskInfactor + 1;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 1;
                     }
-                    else if (age >= 55 && age <= 59)
+                    else if (Age >= 55 && Age <= 59)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 2;
                     }
-                    else if (age >= 60 && age <= 64)
+                    else if (Age >= 60 && Age <= 64)
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 3;
                     }
-                    else if (age >= 65 && age <= 69)
+                    else if (Age >= 65 && Age <= 69)
                     {
-                        RiskInfactor = RiskInfactor + 4;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 4;
                     }
-                    else if (age >= 70 && age <= 74)
+                    else if (Age >= 70 && Age <= 74)
                     {
-                        RiskInfactor = RiskInfactor + 5;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 5;
                     }
-                    else if (age >= 75 && age <= 79)
+                    else if (Age >= 75 && Age <= 79)
                     {
-                        RiskInfactor = RiskInfactor + 6;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 6;
                     }
-                    else if (age >= 80 && age <= 84)
+                    else if (Age >= 80 && Age <= 84)
                     {
-                        RiskInfactor = RiskInfactor + 7;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 7;
                     }
-                    else if (age >= 85 && age <= 89)
+                    else if (Age >= 85 && Age <= 89)
                     {
-                        RiskInfactor = RiskInfactor + 8;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 8;
                     }
                     else
                     {
-                        RiskInfactor = RiskInfactor + 9;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 9;
                     }
                     //年龄的风险加权值
-                    //if (SBP < 140)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 0;
-                    //}
-                    //else if (SBP >= 140 && SBP <= 209)
-                    //{
-                    //    RiskInfactor = RiskInfactor + 1;
-                    //}
-                    //else
-                    //{
-                    //    RiskInfactor = RiskInfactor + 2;
-                    //}
-                    //收缩压风险值加成
-                    if (Heart < 60)
+                    if (Heartrate < 60)
                     {
-                        RiskInfactor = RiskInfactor + 0;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 0;
                     }
-                    else if (Heart >= 60 && Heart <= 79)
+                    else if (Heartrate >= 60 && Heartrate <= 79)
                     {
-                        RiskInfactor = RiskInfactor + 1;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 1;
                     }
-                    else if (Heart >= 80 && Heart <= 104)
+                    else if (Heartrate >= 80 && Heartrate <= 104)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 2;
                     }
                     else
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 3;
                     }
                     //心率风险值加成
-                    if (Value2 == 1)
+                    if (Lvh == 1)
                     {
-                        RiskInfactor = RiskInfactor + 5;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 5;
                     }
                     //左心室肥大（左室高血压）风险值加成
-                    if (Value3 == 1)
+                    if (Chd == 1)
                     {
-                        RiskInfactor = RiskInfactor + 6;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 6;
                     }
                     //冠心病风险值加成
-                    if (Value4 == 1)
+                    if (Valve == 1)
                     {
-                        RiskInfactor = RiskInfactor + 6;
-                        if (Value1 == 1)
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 6;
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 2;
+                            HeartFailureRiskInfactor = HeartFailureRiskInfactor + 2;
                         }
                     }
                     else
                     {
-                        if (Value1 == 1)
+                        if (Smoke == 1)
                         {
-                            RiskInfactor = RiskInfactor + 6;
+                            HeartFailureRiskInfactor = HeartFailureRiskInfactor + 6;
                         }
                     }
                     //瓣膜疾病和糖尿病风险值加成
                     if (BMI < 21)
                     {
-                        RiskInfactor = RiskInfactor + 0;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 0;
                     }
                     else if (BMI >= 21 && BMI <= 25)
                     {
-                        RiskInfactor = RiskInfactor + 1;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 1;
                     }
                     else if (BMI > 25 && BMI <= 29)
                     {
-                        RiskInfactor = RiskInfactor + 2;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 2;
                     }
                     else
                     {
-                        RiskInfactor = RiskInfactor + 3;
+                        HeartFailureRiskInfactor = HeartFailureRiskInfactor + 3;
                     }
                     //BMI风险值加成
-
-                    //if (RiskInfactor < 10)
-                    //{
-                    //    HeartFailureRisk = 1;
-                    //}
-                    //else if (RiskInfactor <= 28)
-                    //{
-                    //    double[] Risk = new double[] { 2, 2, 3, 3, 4, 5, 7, 9, 11, 14, 17, 21, 25, 30, 36, 42, 48, 54, 60 };
-                    //    HeartFailureRisk = Risk[RiskInfactor - 10];
-                    //}
-                    //else 
-                    //{
-                    //    HeartFailureRisk = 60;
-                    //}
-                    //HeartFailureRisk = HeartFailureRisk / 100;
-                    string a = RiskInfactor.ToString();
-                    string b = Gender.ToString();
-                    HeartFailureRisk = a + "||" + b;
-                    return HeartFailureRisk;
+                    #endregion
                 }
+                #endregion
+
+                DataTable Input = new DataTable();
+                Input.Columns.Add(new DataColumn("Age", typeof(int)));
+                Input.Columns.Add(new DataColumn("Gender", typeof(int)));
+                Input.Columns.Add(new DataColumn("Height", typeof(int)));
+                Input.Columns.Add(new DataColumn("Weight", typeof(int)));
+                Input.Columns.Add(new DataColumn("Heartrate", typeof(int)));
+                Input.Columns.Add(new DataColumn("Parent", typeof(int)));
+                Input.Columns.Add(new DataColumn("Smoke", typeof(int)));
+                Input.Columns.Add(new DataColumn("Stroke", typeof(int)));
+                Input.Columns.Add(new DataColumn("Lvh", typeof(int)));
+                Input.Columns.Add(new DataColumn("Diabetes", typeof(int)));
+                Input.Columns.Add(new DataColumn("Treat", typeof(int)));
+                Input.Columns.Add(new DataColumn("Heartattack", typeof(int)));
+                Input.Columns.Add(new DataColumn("Af", typeof(int)));
+                Input.Columns.Add(new DataColumn("Chd", typeof(int)));
+                Input.Columns.Add(new DataColumn("Valve", typeof(int)));
+                Input.Columns.Add(new DataColumn("Tcho", typeof(double)));
+                Input.Columns.Add(new DataColumn("Creatinine", typeof(double)));
+                Input.Columns.Add(new DataColumn("Hdlc", typeof(double)));
+                Input.Columns.Add(new DataColumn("Hyperother", typeof(double)));
+                Input.Columns.Add(new DataColumn("HarvardRiskInfactor", typeof(int)));
+                Input.Columns.Add(new DataColumn("FraminghamRiskInfactor", typeof(double)));
+                Input.Columns.Add(new DataColumn("StrokeRiskInfactor", typeof(int)));
+                Input.Columns.Add(new DataColumn("HeartFailureRiskInfactor", typeof(int)));
+
+                Input.Rows.Add(Age, Gender, Height, Weight, Heartrate, Parent, Smoke, Stroke, Lvh, Diabetes, Treat, Heartattack, Af, Chd, Valve, Tcho, Creatinine, Hdlc, Hyperother, HarvardRiskInfactor, FraminghamRiskInfactor, StrokeRiskInfactor, HeartFailureRiskInfactor);
+
+                DataSet Inputset = new DataSet();
+                Inputset.Tables.Add(Input);
+                return Inputset;
+                #endregion
+
             }
             catch (Exception ex)
             {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetHeartFailure", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return "";
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetRiskInput", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
                 throw (ex);
             }
         }
