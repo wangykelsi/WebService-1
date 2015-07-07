@@ -11,7 +11,7 @@ namespace WebService.DataMethod
 {
     public class CmMstDivision
     {
-        //SetData TDY 2014-12-1
+        //SetData TDY 2014-12-1 WF 2015-07-07
         public static bool SetData(DataConnection pclsCache, int piType, string piCode, string piTypeName, string piName, string piInputCode, string piDescription, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
         {
             bool IsSaved = false;
@@ -93,7 +93,7 @@ namespace WebService.DataMethod
             }
         }
 
-        // GetDivision   TDY 2014-12-1
+        // GetDivision   TDY 2014-12-1 WF 2015-07-07
         public static DataTable GetDivision(DataConnection pclsCache)
         {
             DataTable list = new DataTable();
@@ -225,6 +225,31 @@ namespace WebService.DataMethod
                     cmd.Dispose();
                     cmd = null;
                 }
+                pclsCache.DisConnect();
+            }
+        }
+
+        // GetNamebyCode wf 2015-07-07
+        public static string GetNamebyCode(DataConnection pclsCache, string Code)
+        {
+            try
+            {
+                if (!pclsCache.Connect())
+                {
+                    //MessageBox.Show("Cache数据库连接失败");
+                    return null;
+                }
+                string Name = Cm.MstDivision.GetNamebyCode(pclsCache.CacheConnectionObject, Code);
+                return Name;
+            }
+            catch (Exception ex)
+            {
+                //MessageBox.Show(ex.ToString(), "获取名称失败！");
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "CmMstDivision.GetNamebyCode", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+            }
+            finally
+            {
                 pclsCache.DisConnect();
             }
         }
