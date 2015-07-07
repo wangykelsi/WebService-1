@@ -1496,12 +1496,12 @@ namespace WebService
         }
 
         [WebMethod(Description = "SetData Table：Cm.MstDivision Author:YDS  2014-12-03")]
-        public bool SetDivision(int piType, string piCode, string piName, int piSortNo, int piStartDate, int piEndDate, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
+        public bool SetDivision(int piType, string piCode, string piTypeName, string piName, string piInputCode, string piDescription, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
         {
             try
             {
                 bool ret = false;
-                ret = CmMstDivision.SetData(_cnCache, piType, piCode, piName, piSortNo, piStartDate, piEndDate, revUserId, TerminalName, TerminalIP, DeviceType);
+                ret = CmMstDivision.SetData(_cnCache, piType, piCode, piTypeName, piName, piInputCode, piDescription, revUserId, TerminalName, TerminalIP, DeviceType);
                 return ret;
             }
             catch (Exception ex)
