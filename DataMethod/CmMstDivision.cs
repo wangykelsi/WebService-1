@@ -12,7 +12,7 @@ namespace WebService.DataMethod
     public class CmMstDivision
     {
         //SetData TDY 2014-12-1
-        public static bool SetData(DataConnection pclsCache, int piType, string piCode, string piName, int piSortNo, int piStartDate, int piEndDate, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
+        public static bool SetData(DataConnection pclsCache, int piType, string piCode, string piTypeName, string piName, string piInputCode, string piDescription, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
         {
             bool IsSaved = false;
             try
@@ -23,7 +23,7 @@ namespace WebService.DataMethod
                     return IsSaved;
 
                 }
-                int flag = (int)Cm.MstDivision.SetData(pclsCache.CacheConnectionObject, piType, piCode, piName, piSortNo, piStartDate, piEndDate, revUserId, TerminalName, TerminalIP, DeviceType);
+                int flag = (int)Cm.MstDivision.SetData(pclsCache.CacheConnectionObject, piType, piCode,  piTypeName, piName, piInputCode, piDescription, revUserId, TerminalName, TerminalIP, DeviceType);
                 if (flag == 1)
                 {
                     IsSaved = true;
@@ -99,10 +99,11 @@ namespace WebService.DataMethod
             DataTable list = new DataTable();
             list.Columns.Add(new DataColumn("Type", typeof(int)));
             list.Columns.Add(new DataColumn("Code", typeof(string)));
+            list.Columns.Add(new DataColumn("TypeName", typeof(string)));
             list.Columns.Add(new DataColumn("Name", typeof(string)));
-            list.Columns.Add(new DataColumn("SortNo", typeof(int)));
-            list.Columns.Add(new DataColumn("StartDate", typeof(int)));
-            list.Columns.Add(new DataColumn("EndDate", typeof(int)));
+            list.Columns.Add(new DataColumn("InputCode", typeof(string)));
+            list.Columns.Add(new DataColumn("Description", typeof(string)));
+        
             CacheCommand cmd = null;
             CacheDataReader cdr = null;
 
@@ -121,7 +122,7 @@ namespace WebService.DataMethod
                 cdr = cmd.ExecuteReader();
                 while (cdr.Read())
                 {
-                    list.Rows.Add(cdr["Type"].ToString(), cdr["Code"].ToString(), cdr["Name"].ToString(), cdr["SortNo"].ToString(), cdr["StartDate"].ToString(), cdr["EndDate"].ToString());
+                    list.Rows.Add(cdr["Type"].ToString(), cdr["Code"].ToString(), cdr["TypeName"].ToString(), cdr["Name"].ToString(), cdr["InputCode"].ToString(), cdr["Description"].ToString());
                 }
                 return list;
             }
