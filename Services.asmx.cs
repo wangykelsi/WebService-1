@@ -10002,6 +10002,45 @@ namespace WebService
                 throw ex;
             }
         }
+
+        [WebMethod(Description = "根据模块获取正在执行的计划 表：Ps.Plan Author:ZC 2015-07-06")]
+        public string GetExecutingPlanByModule(string PatientId, string Module)
+        {
+            try
+            {
+                string ret = "";
+                InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
+                planInfo = PsPlan.GetExecutingPlanByM(_cnCache, PatientId, Module);
+                if (planInfo != null)
+                {
+                    ret = planInfo[0].ToString();
+                }
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetExecutingPlanByModule", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return "";
+                throw ex;
+            }
+        }
+
+        [WebMethod(Description = "更改计划状态 表：Ps.Plan Author:ZC 2015-07-06")]
+        public int UpdatePlanStatus(string PlanNo, int Status, string piUserId, string piTerminalName, string piTerminalIP, int piDeviceType)
+        {
+            try
+            {
+                int ret = 0;
+                ret = PsPlan.UpdateStatus(_cnCache, PlanNo, Status, piUserId, piTerminalName, piTerminalIP, piDeviceType);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "UpdatePlanStatus", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return 0;
+                throw ex;
+            }
+        }
         #endregion
 
         #region< "字典维护 GL">
