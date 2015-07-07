@@ -7031,7 +7031,7 @@ namespace WebService
 
                 string ItemCode = "Bloodpressure_1";
                 string ItemType = "Bloodpressure";
-                string Value = PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, PatientId, ItemType,ItemCode );
+                string Value = PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, PatientId, ItemType, ItemCode);
                 if (Value != "")
                 {
                     return Value;
@@ -7057,7 +7057,7 @@ namespace WebService
             {
                 string ItemCode = "Bloodpressure_2";
                 string ItemType = "Bloodpressure";
-                string Value = PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, PatientId, ItemType,ItemCode);
+                string Value = PsVitalSigns.GetLatestPatientVitalSigns(_cnCache, PatientId, ItemType, ItemCode);
                 if (Value != "")
                 {
                     return Value;
@@ -7081,7 +7081,7 @@ namespace WebService
             try
             {
                 int Flag = 2;
-                Flag = PsTarget.SetData(_cnCache,Plan, Id, Type, Code, Value, Origin, Instruction, Unit, piUserId, piTerminalName, piTerminalIP, piDeviceType);
+                Flag = PsTarget.SetData(_cnCache, Plan, Id, Type, Code, Value, Origin, Instruction, Unit, piUserId, piTerminalName, piTerminalIP, piDeviceType);
                 return Flag;
             }
             catch (Exception ex)
@@ -7113,42 +7113,42 @@ namespace WebService
         //MstBloodPressure.GetBPGrades 获取血压等级字典表的所有信息 Author:SYF  2015-04-21
         public List<MstBloodPressure> GetBPGrades()
         {
-             try
-             {
-                 List<MstBloodPressure> result = new List<MstBloodPressure>();
-                 result = CmMstBloodPressure.GetBPGrades(_cnCache);
-                 return result;
-             }
-             catch (Exception ex)
-             {
-                 HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetBPGrades", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                 return null;
-                 throw (ex);
-             }
+            try
+            {
+                List<MstBloodPressure> result = new List<MstBloodPressure>();
+                result = CmMstBloodPressure.GetBPGrades(_cnCache);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetBPGrades", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+                throw (ex);
+            }
         }
 
         [WebMethod(Description = "根据收缩压获取血压等级说明 Table:Cm.MstBloodPressure  Author:SYF 2015-04-22")]
         //GetDescription SYF 2015-04-22 根据收缩压获取血压等级说明      
         public string GetDescription(int SBP)
         {
-             try
-             {
-                 string Value = CmMstBloodPressure.GetDescription(_cnCache, SBP);
-                 if (Value != "")
-                 {
-                     return Value;
-                 }
-                 else
-                 {
-                     return "No";
-                 }
-             }
-             catch (Exception ex)
-             {
-                 HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetDescription", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                 return null;
-                 throw (ex);
-             }
+            try
+            {
+                string Value = CmMstBloodPressure.GetDescription(_cnCache, SBP);
+                if (Value != "")
+                {
+                    return Value;
+                }
+                else
+                {
+                    return "No";
+                }
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetDescription", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+                throw (ex);
+            }
         }
 
         [WebMethod(Description = "获取某计划下某任务的目标值 Table:Ps.Target  Author:SYF 2015-04-26")]
@@ -8182,6 +8182,50 @@ namespace WebService
                 throw (ex);
             }
         }
+
+        [WebMethod(Description = "插入风险评估结果 Table：Ps.TreatmentIndicators Author:SYF  2015-07-06")]
+        public bool SetRiskResult(string UserId, int SortNo, string AssessmentType, string AssessmentName, DateTime AssessmentTime, string Result, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
+        {
+            try
+            {
+                bool Flag = false;
+                SortNo = PsTreatmentIndicators.GetMaxSortNo(_cnCache, UserId) + 1;//sortNo自增
+                Flag = PsTreatmentIndicators.SetData(_cnCache, UserId, SortNo, AssessmentType, AssessmentName, AssessmentTime, Result, revUserId, TerminalName, TerminalIP, DeviceType);
+                return Flag;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Ps.TreatmentIndicators.SetData", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return false;
+                throw ex;
+            }
+        }
+
+        [WebMethod(Description = "根据UserId和SortNo获取最新风险评估结果 Table:Ps.TreatmentIndicators  Author:SYF 2015-07-07")]
+        //GetRiskResult SYF 2015-07-07 根据UserId和SortNo获取最新风险评估结果      
+        public string GetRiskResult(string UserId)
+        {
+            try
+            {
+                int SortNo = PsTreatmentIndicators.GetMaxSortNo(_cnCache, UserId);
+                string Result = PsTreatmentIndicators.GetResult(_cnCache, UserId, SortNo);
+                if (Result != "")
+                {
+                    return Result;
+                }
+                else
+                {
+                    return "No";
+                }
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetRiskResult", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+                throw (ex);
+            }
+        }
+
         #endregion
 
         #region 任务完成情况 LS

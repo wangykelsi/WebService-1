@@ -41,6 +41,60 @@ namespace WebService.DataMethod
             }
         }
 
+        //GetMaxSortNo SYF 2015-07-06 
+        public static int GetMaxSortNo(DataConnection pclsCache, string UserId)
+        {
+            int ret = 0;
+            try
+            {
+                if (!pclsCache.Connect())
+                {
+                    //MessageBox.Show("Cache数据库连接失败");
+                    return ret;
+
+                }
+                ret = (int)Ps.TreatmentIndicators.GetMaxSortNo(pclsCache.CacheConnectionObject, UserId);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                //MessageBox.Show(ex.ToString(), "保存失败！");
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "PsTreatmentIndicators.GetMaxSortNo", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return ret;
+            }
+            finally
+            {
+                pclsCache.DisConnect();
+            }
+        }
+
+        //GetResult SYF 2015-07-07 
+        public static string GetResult(DataConnection pclsCache, string UserId, int SortNo)
+        {
+            string Result = "";
+            try
+            {
+                if (!pclsCache.Connect())
+                {
+                    //MessageBox.Show("Cache数据库连接失败");
+                    return "";
+
+                }
+                Result = Ps.TreatmentIndicators.GetResult(pclsCache.CacheConnectionObject, UserId, SortNo);
+                return Result;
+            }
+            catch (Exception ex)
+            {
+                //MessageBox.Show(ex.ToString(), "保存失败！");
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "PsTreatmentIndicators.GetResult", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return Result;
+            }
+            finally
+            {
+                pclsCache.DisConnect();
+            }
+        }
+
         // GetPsTreatmentIndicators   TDY 2014-12-1
         public static DataTable GetPsTreatmentIndicators(DataConnection pclsCache, string UserId)
         {
