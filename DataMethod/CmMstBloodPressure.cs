@@ -141,8 +141,9 @@ namespace WebService.DataMethod
         }
 
 
-        //以下是任务完成情况用到的函数...
-        //GetBPGrades LS 2015-03-27  获取血压分级规则
+        #region 高血压模块 M1 LS
+
+        //GetBPGrades LS 2015-03-27  从数据库获取血压分级规则
         public static List<MstBloodPressure> GetBPGrades(DataConnection pclsCache)
         {
 
@@ -198,38 +199,60 @@ namespace WebService.DataMethod
             }
         }
 
-        //GetFillColor LS 2015-04-18  获取血压风险范围颜色
-        public static string GetFillColor(string name)
+        //GetBPColor LS 2015-04-18  获取血压点 和 数据图区块的颜色  输入：血压值级别  点/区域  是否需要点和区域都有颜色？
+        public static string GetBPColor(string name, string type)
         {
-            string colorShow = "gray";  //待标记颜色
+            string colorShow = "";  //默认颜色
             try
             {
-                switch (name)
+                if (type == "bullet")
                 {
-                    case "很高": colorShow = "#930000";  //红色
-                        break;
-                    case "偏高": colorShow = "#CC0000";  //
-                        break;
-                    case "警戒": colorShow = "#0000cc"; //
-                        break;
-                    case "正常": colorShow = "#2894FF";  //
-                        break;
-                    case "偏低": colorShow = "#FFC78E";  //
-                        break;
-                    default: break;
+                    colorShow = "#FFC78E";
+                    switch (name)
+                    {
+                        case "很高": colorShow = "#930000";  //红色
+                            break;
+                        case "偏高": colorShow = "#CC0000";  //
+                            break;
+                        case "警戒": colorShow = "#0000cc"; //
+                            break;
+                        case "正常": colorShow = "#2894FF";  //
+                            break;
+                        case "偏低": colorShow = "#FFC78E";  //
+                            break;
+                        default: break;
+                    }
+                }
+                else   //fill
+                {
+                    colorShow = "#8080C0";
+                    switch (name)
+                    {
+                        case "很高": colorShow = "#FF0000";  //深红色
+                            break;
+                        case "偏高": colorShow = "#FF60AF";  //微红
+                            break;
+                        case "警戒": colorShow = "#FFA042"; //橙色
+                            break;
+                        case "正常": colorShow = "#00DB00";  //绿色
+                            break;
+                        case "偏低": colorShow = "#8080C0";  //微紫
+                            break;
+                        default: break;
+                    }
                 }
 
                 return colorShow;
             }
             catch (Exception ex)
             {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "CmMstBloodPressure.GetFillColor", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "CmMstBloodPressure.GetBPColor", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
                 return null;
             }
         }
 
-        //GetSignGrade LS 2015-03-27  获取某血压值的级别-输出 Cm.MstBloodPressure.Name 名称：很高、偏高、警戒、正常
-        public static string GetSignGrade(string BPType, int Value, List<MstBloodPressure> Reference)
+        //GetSignBPGrade LS 2015-03-27  获取某血压值的级别   输出 Cm.MstBloodPressure.Name -很高、偏高、警戒、正常等
+        public static string GetSignBPGrade(string BPType, int Value, List<MstBloodPressure> Reference)
         {
             //算法：将值Value与分级的值一一相比，注意  >Value；   <= Value <；   <=Value 等区间，确定其级别（取左边的值）  目前Name少了一个，暂时默认少了偏高
             string Name = "不明范围";  //待标记颜色
@@ -298,44 +321,13 @@ namespace WebService.DataMethod
             }
             catch (Exception ex)
             {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "CmMstBloodPressure.GetSignGrade", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "CmMstBloodPressure.GetSignBPGrade", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
                 return null;
             }
         }
 
-        //GetSignColor LS 2015-03-27  获取血压值颜色-根据 Cm.MstBloodPressure.Name
-        public static string GetSignColor(string name)
-        {
-            string colorShow = "#000000";  //待标记颜色
-            try
-            {
-                switch (name)
-                {
-                    case "很高": colorShow = "#FF0000";  //深红色
-                        break;
-                    case "偏高": colorShow = "#FF60AF";  //微红
-                        break;
-                    case "警戒": colorShow = "#FFA042"; //橙色
-                        break;
-                    case "正常": colorShow = "#00DB00";  //绿色
-                        break;
-                    case "偏低": colorShow = "#8080C0";  //微紫
-                        break;
-                    default: break;
-                }
-
-                return colorShow;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "CmMstBloodPressure.GetSignColor", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return null;
-            }
-        }
-
-        //增加脉率  收缩压/舒张压/脉率切换时调此函数    默认输入为收缩压  不同点：脉率不需要reference的传入  故两个函数
-        //GetSignInfoByPulse  LS 2015-06-28  获取收缩压/舒张压/脉率数据  并拼接字段、进行分级  供图使用
-        public static List<Graph> GetSignInfoByBP(DataConnection pclsCache, string UserId, string PlanNo, string ItemCode, int StartDate, int EndDate, List<MstBloodPressure> reference)
+        //GetSignInfoByBP  LS 2015-06-28  生成收缩压/舒张压/脉率点图，并分级   需要三者拼接字段  注意：可能没有脉率任务 
+        public static List<Graph> GetSignInfoByM1(DataConnection pclsCache, string UserId, string PlanNo, string Code, int StartDate, int EndDate, List<MstBloodPressure> reference)
         {
             List<Graph> graphList = new List<Graph>();
 
@@ -350,6 +342,13 @@ namespace WebService.DataMethod
 
             try
             {
+                //输入的code是拼接字段
+                //string[] strCode = Code.Split(new char[] { '|' });
+                //string ItemType = strCode[0];
+                //string ItemCode = strCode[1];
+
+                //M1的关注含下列几表   PsCompliance.GetSignDetailByPeriod方法保证几表条数相等 即使某天没体征数据，也会输出""字符串  
+
                 //收缩压表
                 DataTable sysInfo = new DataTable();
                 sysInfo = PsCompliance.GetSignDetailByPeriod(pclsCache, UserId, PlanNo, "Bloodpressure", "Bloodpressure_1", StartDate, EndDate);
@@ -359,39 +358,11 @@ namespace WebService.DataMethod
                 DataTable diaInfo = new DataTable();
                 diaInfo = PsCompliance.GetSignDetailByPeriod(pclsCache, UserId, PlanNo, "Bloodpressure", "Bloodpressure_2", StartDate, EndDate);
 
-
-                //脉率表 Pulserate
+                //脉率表
                 DataTable pulInfo = new DataTable();
                 pulInfo = PsCompliance.GetSignDetailByPeriod(pclsCache, UserId, PlanNo, "Pulserate", "Pulserate_1", StartDate, EndDate);
 
-                /*
-                //测试数据
-                DataTable pulInfo = new DataTable();
-                pulInfo.Columns.Add(new DataColumn("RecordDate", typeof(string)));
-                pulInfo.Columns.Add(new DataColumn("RecordTime", typeof(string)));
-                pulInfo.Columns.Add(new DataColumn("Value", typeof(string)));
-                pulInfo.Columns.Add(new DataColumn("Unit", typeof(string)));
-
-                //
-                if (PlanNo == "PLN201506170013")
-                {
-                    pulInfo.Rows.Add("20150617", "2015", "70", "");
-                    pulInfo.Rows.Add("20150618", "1043", "79", "");
-                }
-                else
-                {
-                    pulInfo.Rows.Add("20150618", "1043", "71", "");
-                    pulInfo.Rows.Add("20150624", "1400", "72", "");
-                    pulInfo.Rows.Add("20150627", "1400", "73", "");
-                    pulInfo.Rows.Add("20150628", "1400", "74", "");
-                    pulInfo.Rows.Add("20150629", "1400", "75", "");
-                    pulInfo.Rows.Add("20150630", "1400", "76", "");
-                }
-                */
-
-                //PsCompliance.GetSignDetailByPeriod  即使某天没体征数据，也会输出""字符串   能保证三张表的条数肯定相等
-
-
+                //三张表都有数据
                 if ((sysInfo.Rows.Count == diaInfo.Rows.Count) && (sysInfo.Rows.Count == pulInfo.Rows.Count) && (sysInfo.Rows.Count > 0))
                 {
 
@@ -403,14 +374,15 @@ namespace WebService.DataMethod
                         #region 值、等级、颜色
 
                         //值、等级、颜色、描述文本
-                        if (ItemCode == "Bloodpressure_1")
+                        if ((Code == "Bloodpressure|Bloodpressure_1") && (reference != null)) //血压要求 reference 不为空
                         {
+
                             #region 收缩压
                             Graph.SignValue = sysInfo.Rows[rowsCount]["Value"].ToString();
                             if (Graph.SignValue != "")
                             {
-                                Graph.SignGrade = CmMstBloodPressure.GetSignGrade("Bloodpressure_1", Convert.ToInt32(Graph.SignValue), reference);
-                                Graph.SignColor = CmMstBloodPressure.GetSignColor(Graph.SignGrade);
+                                Graph.SignGrade = CmMstBloodPressure.GetSignBPGrade("Bloodpressure_1", Convert.ToInt32(Graph.SignValue), reference);
+                                Graph.SignColor = CmMstBloodPressure.GetBPColor(Graph.SignGrade, "bullet");
 
                                 //判断是否都有值
                                 if ((sysInfo.Rows[rowsCount]["Value"].ToString() != "") && (diaInfo.Rows[rowsCount]["Value"].ToString() != "") && (pulInfo.Rows[rowsCount]["Value"].ToString() != ""))
@@ -437,14 +409,14 @@ namespace WebService.DataMethod
                             }
                             #endregion
                         }
-                        else if (ItemCode == "Bloodpressure_2")  //舒张压
+                        else if ((Code == "Bloodpressure|Bloodpressure_2") && (reference != null))  //舒张压
                         {
                             #region 舒张压
                             Graph.SignValue = diaInfo.Rows[rowsCount]["Value"].ToString();
                             if (Graph.SignValue != "")
                             {
-                                Graph.SignGrade = CmMstBloodPressure.GetSignGrade("Bloodpressure_2", Convert.ToInt32(Graph.SignValue), reference);
-                                Graph.SignColor = CmMstBloodPressure.GetSignColor(Graph.SignGrade);
+                                Graph.SignGrade = CmMstBloodPressure.GetSignBPGrade("Bloodpressure_2", Convert.ToInt32(Graph.SignValue), reference);
+                                Graph.SignColor = CmMstBloodPressure.GetBPColor(Graph.SignGrade, "bullet");
                                 //Graph.SignDescription = "血压：" + sysInfo.Rows[rowsCount]["Value"].ToString() + "/<b><span style='font-size:14px;'>" + diaInfo.Rows[rowsCount]["Value"].ToString() + "</span></b>mmHg<br>脉搏：" + pulInfo.Rows[rowsCount]["Value"].ToString() + "次/分";
 
                                 //判断是否都有值
@@ -470,7 +442,7 @@ namespace WebService.DataMethod
                             }
                             #endregion
                         }
-                        else   //脉率"Pulserate_1"
+                        else if (Code == "Pulserate|Pulserate_1")  //脉率
                         {
                             #region 脉率
                             Graph.SignValue = pulInfo.Rows[rowsCount]["Value"].ToString();
@@ -514,6 +486,7 @@ namespace WebService.DataMethod
                             {
                                 Graph.SignGrade = "";
                                 Graph.SignColor = "";
+                                Graph.SignDescription = "";
                             }
                             #endregion
                         }
@@ -546,6 +519,7 @@ namespace WebService.DataMethod
 
                 }
 
+                //有血压任务，没有脉率
                 return graphList;
             }
             catch (Exception ex)
@@ -559,148 +533,8 @@ namespace WebService.DataMethod
             }
         }
 
-        //GetSignInfoByPulse  LS 2015-06-28  获取脉率数据  并拼接字段、进行分级  GetBPInfo1的轻量版  单独脉率不需要reference的传入  供图使用
-        public static List<Graph> GetSignInfoByPulse(DataConnection pclsCache, string UserId, string PlanNo, string ItemCode, int StartDate, int EndDate)
-        {
-            List<Graph> graphList = new List<Graph>();
-
-            //获取系统时间  数据库连接，这样写，应该对的
-            string serverTime = "";
-            if (pclsCache.Connect())
-            {
-                serverTime = Convert.ToDateTime(Cm.CommonLibrary.GetServerDateTime(pclsCache.CacheConnectionObject)).ToString("yyyyMMdd");
-
-            }
-            pclsCache.DisConnect();
-
-            try
-            {
-                //收缩压表
-                DataTable sysInfo = new DataTable();
-                sysInfo = PsCompliance.GetSignDetailByPeriod(pclsCache, UserId, PlanNo, "Bloodpressure", "Bloodpressure_1", StartDate, EndDate);
-                //RecordDate、RecordTime、Value、Unit
-
-                //舒张压表
-                DataTable diaInfo = new DataTable();
-                diaInfo = PsCompliance.GetSignDetailByPeriod(pclsCache, UserId, PlanNo, "Bloodpressure", "Bloodpressure_2", StartDate, EndDate);
-
-
-                //脉率表 Pulserate
-                DataTable pulInfo = new DataTable();
-                pulInfo = PsCompliance.GetSignDetailByPeriod(pclsCache, UserId, PlanNo, "Pulserate", "Pulserate_1", StartDate, EndDate);
-
-                /*
-                //测试数据
-                DataTable pulInfo = new DataTable();
-                pulInfo.Columns.Add(new DataColumn("RecordDate", typeof(string)));
-                pulInfo.Columns.Add(new DataColumn("RecordTime", typeof(string)));
-                pulInfo.Columns.Add(new DataColumn("Value", typeof(string)));
-                pulInfo.Columns.Add(new DataColumn("Unit", typeof(string)));
-                pulInfo.Rows.Add("20150618", "1043", "79", "");
-                pulInfo.Rows.Add("20150624", "1400", "79", "");
-                pulInfo.Rows.Add("20150627", "1400", "79", "");
-                pulInfo.Rows.Add("20150628", "1400", "79", "");
-                pulInfo.Rows.Add("20150629", "1400", "79", "");
-                 */
-
-                //PsCompliance.GetSignDetailByPeriod  即使某天没体征数据，也会输出字符串   能保证三张表的条数肯定相等
-
-
-                if ((sysInfo.Rows.Count == diaInfo.Rows.Count) && (sysInfo.Rows.Count == pulInfo.Rows.Count) && (sysInfo.Rows.Count > 0))
-                {
-
-                    for (int rowsCount = 0; rowsCount < sysInfo.Rows.Count; rowsCount++)
-                    {
-                        Graph Graph = new Graph();
-                        Graph.Date = sysInfo.Rows[rowsCount]["RecordDate"].ToString();
-
-                        //值、等级、颜色、文本
-                        if (ItemCode == "Pulserate_1")   //脉率"Pulserate_1"
-                        {
-                            Graph.SignValue = pulInfo.Rows[rowsCount]["Value"].ToString();
-                            if (Graph.SignValue != "")
-                            {
-                                //脉率的分级 写死
-                                if (Convert.ToDouble(Graph.SignValue) < 60)  //过慢
-                                {
-                                    Graph.SignGrade = "过慢";
-                                    Graph.SignColor = "#8080C0"; //微紫
-                                }
-                                else if (Convert.ToDouble(Graph.SignValue) > 100) //过快
-                                {
-                                    Graph.SignGrade = "过快";
-                                    Graph.SignColor = "#FF60AF";  //微红
-                                }
-                                else //成人 60~100之间包括端点 正常
-                                {
-                                    Graph.SignGrade = "正常";
-                                    Graph.SignColor = "#00DB00";  //绿色
-                                }
-
-                                //Graph.SignDescription = "血压：" + sysInfo.Rows[rowsCount]["Value"].ToString() + "/" + diaInfo.Rows[rowsCount]["Value"].ToString() + "mmHg<br>脉率：<b><span style='font-size:14px;'>" + pulInfo.Rows[rowsCount]["Value"].ToString() + "</span></b>次/分";
-                                //判断是否都有值
-                                if ((sysInfo.Rows[rowsCount]["Value"].ToString() != "") && (diaInfo.Rows[rowsCount]["Value"].ToString() != "") && (pulInfo.Rows[rowsCount]["Value"].ToString() != ""))
-                                {
-                                    Graph.SignDescription = "血压：" + sysInfo.Rows[rowsCount]["Value"].ToString() + "/" + diaInfo.Rows[rowsCount]["Value"].ToString() + "mmHg<br>脉率：<b><span style='font-size:14px;'>" + pulInfo.Rows[rowsCount]["Value"].ToString() + "</span></b>次/分";
-                                }
-                                else if ((sysInfo.Rows[rowsCount]["Value"].ToString() != "") || (diaInfo.Rows[rowsCount]["Value"].ToString() != "") && (pulInfo.Rows[rowsCount]["Value"].ToString() == ""))
-                                {
-                                    Graph.SignDescription = "血压：" + sysInfo.Rows[rowsCount]["Value"].ToString() + "/" + diaInfo.Rows[rowsCount]["Value"].ToString() + "mmHg";
-                                }
-                                else if ((sysInfo.Rows[rowsCount]["Value"].ToString() == "") && (diaInfo.Rows[rowsCount]["Value"].ToString() == "") && (pulInfo.Rows[rowsCount]["Value"].ToString() != ""))
-                                {
-                                    Graph.SignDescription = "脉率：<b><span style='font-size:14px;'>" + pulInfo.Rows[rowsCount]["Value"].ToString() + "</span></b>次/分";
-                                }
-
-                            }
-                            else
-                            {
-                                Graph.SignGrade = "";
-                                Graph.SignColor = "";
-                                Graph.SignDescription = "";
-                            }
-                        }
-
-                        //形状
-                        if (rowsCount != sysInfo.Rows.Count - 1)
-                        {
-                            Graph.SignShape = "round";
-                            Graph.SignShape = "round";
-                        }
-                        else
-                        {
-                            if (serverTime == Graph.Date)  //当天的血压点形状用菱形
-                            {
-                                Graph.SignShape = "diamond";
-                                Graph.SignShape = "diamond";
-                            }
-                            else
-                            {
-                                Graph.SignShape = "round";
-                                Graph.SignShape = "round";
-                            }
-
-                        }
-                        graphList.Add(Graph);
-                    }
-
-                }
-
-                return graphList;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "CmMstBloodPressure.GetSignInfoByPulse", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return null;
-            }
-            finally
-            {
-
-            }
-        }
-
-        //输出用于图形的脉率风险划分
-        public static GraphGuide GetGuidesByCode(DataConnection pclsCache, string PlanNo, string ItemCode, List<MstBloodPressure> Reference)
+        //GetGuidesByCode LS 2015-06-28 输出用于图形的分级区域
+        public static GraphGuide GetGuidesByCode(DataConnection pclsCache, string PlanNo, string Code, List<MstBloodPressure> Reference)
         {
 
             GraphGuide GraphGuide = new GraphGuide();   //输出
@@ -712,7 +546,7 @@ namespace WebService.DataMethod
             {
 
 
-                if (ItemCode == "Bloodpressure_1")
+                if ((Code == "Bloodpressure|Bloodpressure_1") && (Reference != null))
                 {
                     #region 收缩压
 
@@ -740,7 +574,7 @@ namespace WebService.DataMethod
                         originalGuide.fillColor = "";
 
                         GuideList.Add(originalGuide);
-                        GraphGuide.original = originalGuide.value;
+                        GraphGuide.original = originalGuide.value + "mmHg";
 
 
                         //目标值
@@ -760,7 +594,7 @@ namespace WebService.DataMethod
                         tagetGuide.fillColor = "";
 
                         GuideList.Add(tagetGuide);
-                        GraphGuide.target = tagetGuide.value;
+                        GraphGuide.target = tagetGuide.value + "mmHg";
                     }
 
                     //风险范围
@@ -779,7 +613,7 @@ namespace WebService.DataMethod
                         SysGuide.position = "right";    //字体位置 right left
                         SysGuide.inside = "true";      //坐标系的内或外  false
                         SysGuide.fillAlpha = "0.1";
-                        SysGuide.fillColor = CmMstBloodPressure.GetFillColor(SysGuide.label);   //GetFillColor
+                        SysGuide.fillColor = CmMstBloodPressure.GetBPColor(SysGuide.label, "fill");   //GetFillColor
                         GuideList.Add(SysGuide);
 
                     }
@@ -807,7 +641,7 @@ namespace WebService.DataMethod
 
                     #endregion
                 }
-                else if (ItemCode == "Bloodpressure_2")
+                else if ((Code == "Bloodpressure|Bloodpressure_2") && (Reference != null))
                 {
                     #region 舒张压
                     GraphGuide.minimum = Convert.ToDouble(Reference[0].DBP);
@@ -835,7 +669,7 @@ namespace WebService.DataMethod
                         originalGuide.fillColor = "";
 
                         GuideList.Add(originalGuide);
-                        GraphGuide.original = originalGuide.value;
+                        GraphGuide.original = originalGuide.value + "mmHg";
 
                         //目标值
                         Guide tagetGuide = new Guide();
@@ -854,7 +688,7 @@ namespace WebService.DataMethod
                         tagetGuide.fillAlpha = "";
 
                         GuideList.Add(tagetGuide);
-                        GraphGuide.target = tagetGuide.value;
+                        GraphGuide.target = tagetGuide.value + "mmHg";
                     }
 
                     //风险范围
@@ -873,7 +707,7 @@ namespace WebService.DataMethod
                         DiaGuide.position = "right";
                         DiaGuide.inside = "true";
                         DiaGuide.fillAlpha = "0.1";
-                        DiaGuide.fillColor = CmMstBloodPressure.GetFillColor(DiaGuide.label);
+                        DiaGuide.fillColor = CmMstBloodPressure.GetBPColor(DiaGuide.label, "fill");
 
                         GuideList.Add(DiaGuide);
 
@@ -903,7 +737,7 @@ namespace WebService.DataMethod
 
                     #endregion
                 }
-                else  //脉率没有 初始值和目标值
+                else if (Code == "Pulserate|Pulserate_1") //脉率没有 初始值和目标值
                 {
                     #region 脉率
                     GraphGuide.minimum = 30;
@@ -1061,6 +895,8 @@ namespace WebService.DataMethod
             {
             }
         }
+
+        #endregion 
     
     }
 }

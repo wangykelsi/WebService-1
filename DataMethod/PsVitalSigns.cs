@@ -479,7 +479,6 @@ namespace WebService.DataMethod
                 }
             }
         }
-        
 
         //以下是任务完成情况用到的函数
 
@@ -570,6 +569,10 @@ namespace WebService.DataMethod
                             list.Rows.Add("3", RecordDate, RecordTime, cdr["Value"].ToString(), cdr["Unit"].ToString());
                         }
                     }
+
+                    //DataView dv = list.DefaultView;
+                    //dv.Sort = "RecordDate desc, RecordTime asc";
+                    //DataTable dt_Sort = dv.ToTable();
 
                     return list;
                 }

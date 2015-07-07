@@ -32,12 +32,15 @@ namespace WebService.DataClass
 
         public ChartData ChartData { get; set; }        //画图数据-血压、脉率值，分级情况，依从情况
 
+        public List<SignShow> SignList { get; set; }          //图上体征切换显示
+
         public ImplementationInfo()
         {
             PatientInfo = new PatientInfo1();          //初始化
             PlanList = new List<PlanDeatil>();
             TaskList = new List<Task>();
             ChartData = new ChartData();
+            SignList = new List<SignShow>();
         }
 
     }
@@ -58,9 +61,12 @@ namespace WebService.DataClass
 
         public int EndDate { get; set; }
 
+        public List<SignShow> SignList { get; set; }          //图上体征切换显示
+
         public ImplementationPhone()
         {
             ChartData = new ChartData();
+            SignList = new List<SignShow>();
         }
 
     }
@@ -216,4 +222,13 @@ namespace WebService.DataClass
             TaskDeatilList = new List<TaskDeatil>();
         }
     }
+
+    public class SignShow  //图上体征切换显示
+    {
+        public string SignName { get; set; }
+
+        public string SignCode { get; set; }
+
+    }
+
 }

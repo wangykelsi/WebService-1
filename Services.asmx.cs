@@ -10192,6 +10192,9 @@ namespace WebService
             string str_result = "";  //最终的输出-ImplementationInfo转化成json格式
             try
             {
+
+                //与模块特性无关的公共项 ——病人基本信息、计划列表、计划进度、体征切换  不同模块可共用
+
                 string PlanNo = "";
 
                 //病人基本信息-姓名、头像..
@@ -10245,41 +10248,67 @@ namespace WebService
                         ImplementationInfo.CompliacneValue = "最近一周依从率为：" + PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1])) + "%";
                     }
 
+
+
+
                     //读取任务列表
                     DataTable TaskList = new DataTable();
                     TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
                     //ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
 
-                    //测量-血压、脉率 （默认显示-收缩压）  应该保证测量任务 血压血压、脉率都有  因为后面的代码有三个数据的合成  考虑将血压和脉率分开
-                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                    //测量-体征切换下拉框  
+                    string condition = " Type = 'VitalSign'";
                     DataRow[] VitalSignRows = TaskList.Select(condition);
+                    List<SignShow> SignList = new List<SignShow>();
+                    for (int j = 0; j < VitalSignRows.Length; j++)
+                    {
+                        SignShow SignShow = new SignShow();
+                        SignShow.SignName = VitalSignRows[j]["CodeName"].ToString();
+                        SignShow.SignCode = VitalSignRows[j]["Code"].ToString();
+                        SignList.Add(SignShow);
+                    }
+                    ImplementationInfo.SignList = SignList;
+
 
                     List<MstBloodPressure> reference = new List<MstBloodPressure>();
                     ChartData ChartData = new ChartData();
                     List<Graph> GraphList = new List<Graph>();
                     GraphGuide GraphGuide = new GraphGuide();
 
-                    if ((VitalSignRows != null) && (VitalSignRows.Length == 3))  //一定会有血压和脉率测量任务   记得改回来..
+                    if (Module == "M1")  //后期维护的话，在这里添加不同的模块判断
                     {
-                        //获取血压的分级规则，脉率的分级原则写死在webservice
-                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
 
-                        //首次进入，默认加载收缩压
-                        GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate, reference);
-                        //GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", ImplementationInfo.StartDate, ImplementationInfo.EndDate, reference);
+                        //高血压模块  体征测量-血压（收缩压、舒张压）、脉率   【默认显示-收缩压，血压必有，脉率可能有】  
+                        condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                        DataRow[] HyperTensionRows = TaskList.Select(condition);
 
-                        //初始值、目标值、分级规则加工
-                        if (GraphList.Count > 0)
+                        //注意：需要兼容之前没有脉率的情况
+                        if ((HyperTensionRows != null) && (HyperTensionRows.Length >= 2))  //M1 收缩压（默认显示）、舒张压、脉率  前两者肯定有，脉率不一定有
                         {
-                            GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure_1", reference);
-                            ChartData.GraphGuide = GraphGuide;
+                            //从数据库获取血压的分级规则，脉率的分级原则写死在webservice
+                            reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+                            //首次进入，默认加载收缩压
+                            GraphList = CmMstBloodPressure.GetSignInfoByM1(_cnCache, PatientId, PlanNo, "Bloodpressure|Bloodpressure_1", ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate, reference);
+
+                            //初始值、目标值、分级规则加工
+                            if (GraphList.Count > 0)
+                            {
+                                GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure|Bloodpressure_1", reference);
+                                ChartData.GraphGuide = GraphGuide;
+                            }
                         }
+
+                    }
+                    else
+                    {
+
                     }
 
 
                     //必有测量任务，其他任务（例如吃药）可能没有
 
-                    //其他任务依从情况
+                    //其他任务依从情况  所有模块共有的
                     List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
                     //是否有其他任务
                     //string condition1 = " Type not in ('VitalSign,')";
@@ -10290,8 +10319,8 @@ namespace WebService
                     else
                     {
                         ChartData.OtherTasks = "1";
-                        TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate);
-                        if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
+                        TasksComByPeriod = PsCompliance.GetTasksComCountByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate);
+                        if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count)) //体征的数据条数一定等于其他任务的条数（天数） ，都是按照compliance的date统计的
                         {
                             for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
                             {
@@ -10330,7 +10359,7 @@ namespace WebService
         {
             ImplementationInfo ImplementationInfo = new ImplementationInfo();
             string str_result = "";
-
+            string Module = "";
             try
             {
                 //Pad保证PlanNo输入不为空  为空的表示无当前计划，则显示无执行即可，无需连接网络服务
@@ -10345,7 +10374,7 @@ namespace WebService
                     if (planInfo != null)
                     {
                         planStatus = Convert.ToInt32(planInfo[5]);
-
+                        Module = planInfo[4].ToString();
                         ImplementationInfo.StartDate = Convert.ToInt32(planInfo[2]);
                         ImplementationInfo.EndDate = Convert.ToInt32(planInfo[3]);
 
@@ -10385,28 +10414,48 @@ namespace WebService
                     TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
                     //ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
 
-                    //测量-血压、脉率 （默认显示-收缩压）
-                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2' or  Code = 'Pulserate|Pulserate_1'";
+                    //测量-体征切换下拉框  
+                    string condition = " Type = 'VitalSign'";
                     DataRow[] VitalSignRows = TaskList.Select(condition);
+                    List<SignShow> SignList = new List<SignShow>();
+                    for (int j = 0; j < VitalSignRows.Length; j++)
+                    {
+                        SignShow SignShow = new SignShow();
+                        SignShow.SignName = VitalSignRows[j]["CodeName"].ToString();
+                        SignShow.SignCode = VitalSignRows[j]["Code"].ToString();
+                        SignList.Add(SignShow);
+                    }
+                    ImplementationInfo.SignList = SignList;
+
+
 
                     List<MstBloodPressure> reference = new List<MstBloodPressure>();
                     ChartData ChartData = new ChartData();
                     List<Graph> GraphList = new List<Graph>();
                     GraphGuide GraphGuide = new GraphGuide();
 
-                    if ((VitalSignRows != null) && (VitalSignRows.Length == 3))  //一定会有血压和脉率测量任务  记得改回来..
+                    if (Module == "M1")  //后期维护的话，在这里添加不同的模块判断
                     {
-                        //获取血压的分级规则，脉率的分级原则写死在webservice
-                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
 
-                        //首次进入，默认加载收缩压
-                        GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", ImplementationInfo.StartDate, ImplementationInfo.EndDate, reference);
+                        //高血压模块  体征测量-血压（收缩压、舒张压）、脉率   【默认显示-收缩压，血压必有，脉率可能有】  
+                        condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                        DataRow[] HyperTensionRows = TaskList.Select(condition);
 
-                        //初始值、目标值、分级规则加工
-                        if (GraphList.Count > 0)
+                        //注意：需要兼容之前没有脉率的情况
+                        if ((HyperTensionRows != null) && (HyperTensionRows.Length >= 2))  //M1 收缩压（默认显示）、舒张压、脉率  前两者肯定有，脉率不一定有
                         {
-                            GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure_1", reference);
-                            ChartData.GraphGuide = GraphGuide;
+                            //获取血压的分级规则，脉率的分级原则写死在webservice
+                            reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+                            //首次进入，默认加载收缩压
+                            GraphList = CmMstBloodPressure.GetSignInfoByM1(_cnCache, PatientId, PlanNo, "Bloodpressure|Bloodpressure_1", ImplementationInfo.StartDate, ImplementationInfo.EndDate, reference);
+
+                            //初始值、目标值、分级规则加工
+                            if (GraphList.Count > 0)
+                            {
+                                GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure|Bloodpressure_1", reference);
+                                ChartData.GraphGuide = GraphGuide;
+                            }
                         }
                     }
 
@@ -10424,7 +10473,7 @@ namespace WebService
                     else
                     {
                         ChartData.OtherTasks = "1";
-                        TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.StartDate, ImplementationInfo.EndDate);
+                        TasksComByPeriod = PsCompliance.GetTasksComCountByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.StartDate, ImplementationInfo.EndDate);
                         if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
                         {
                             for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
@@ -10458,7 +10507,6 @@ namespace WebService
             }
         }
 
-
         [WebMethod(Description = "获取某体征的数据和画图信息  Table:Ps.VitalSigns  Author:LS 2015-06-29")]
         // GetSignInfoByCode 获取某体征的数据和画图信息（收缩压、舒张压、脉率）  LS 2015-06-29  Pad和Phone都要用
         //关于输入 StartDate，EndDate  Pad首次没有拿出StartDate，EndDate    Phone拿出了 这样规划比较好
@@ -10471,22 +10519,23 @@ namespace WebService
 
             try
             {
-                if (ItemCode == "Pulserate_1")
+                string Module = "";
+                InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
+                planInfo = PsPlan.GetPlanInfo(_cnCache, PlanNo);
+                if (planInfo != null)
                 {
-                    GraphList = CmMstBloodPressure.GetSignInfoByPulse(_cnCache, PatientId, PlanNo, ItemCode, StartDate, EndDate);
+                    Module = planInfo[4].ToString();
 
-                    //分级规则加工  脉率没有 初始值和目标值
-                    if (GraphList.Count > 0)
-                    {
-                        GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, ItemCode, reference);
-                        ChartData.GraphGuide = GraphGuide;
-                    }
                 }
-                else
-                {
 
-                    reference = CmMstBloodPressure.GetBPGrades(_cnCache);
-                    GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, ItemCode, StartDate, EndDate, reference);
+                if (Module == "M1")
+                {
+                    if ((ItemCode == "Bloodpressure|Bloodpressure_1") || (ItemCode == "Bloodpressure|Bloodpressure_2"))
+                    {
+                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+                    }
+
+                    GraphList = CmMstBloodPressure.GetSignInfoByM1(_cnCache, PatientId, PlanNo, ItemCode, StartDate, EndDate, reference);
 
                     //初始值、目标值、分级规则加工
                     if (GraphList.Count > 0)
@@ -10496,20 +10545,15 @@ namespace WebService
                     }
                 }
 
-                //读取任务列表
+                //读取任务列表  必有测量任务，其他任务（例如吃药）可能没有
                 DataTable TaskList = new DataTable();
                 TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
-                //ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
-
-                //测量-血压、脉率 （默认显示-收缩压）  应该保证测量任务 血压血压、脉率都有  因为后面的代码有三个数据的合成  考虑将血压和脉率分开
-                string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                string condition = " Type = 'VitalSign'";
                 DataRow[] VitalSignRows = TaskList.Select(condition);
-                //必有测量任务，其他任务（例如吃药）可能没有
 
                 //其他任务依从情况
                 List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
                 //是否有其他任务
-                //string condition1 = " Type not in ('VitalSign,')";
                 if (TaskList.Rows.Count == VitalSignRows.Length)
                 {
                     ChartData.OtherTasks = "0";
@@ -10517,7 +10561,7 @@ namespace WebService
                 else
                 {
                     ChartData.OtherTasks = "1";
-                    TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, StartDate, EndDate);
+                    TasksComByPeriod = PsCompliance.GetTasksComCountByPeriod(_cnCache, PatientId, PlanNo, StartDate, EndDate);
                     if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
                     {
                         for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
@@ -10547,132 +10591,25 @@ namespace WebService
             }
         }
 
-        //Pad和Phone区别 后者只看最近七天的  只显示用药的依从情况  暂时不用
-        [WebMethod(Description = "获取计划完成情况（Phone)-查看当前计划近一周的情况  Table:计划、任务、依从..  Author:LS 2015-03-27")]
-        // GetImplementationForPhone 获取计划完成情况（Pad）  LS 2015-06-29  
-        public void GetImplementationForPhone1(string PatientId, string Module)
+
+
+        [WebMethod(Description = "通过某计划的日期，获取该天的任务完成详情 用于图上点点击时弹框内容..  Author:LS 2015-07-02")]
+        //新加 GetImplementationByDate 通过某计划的日期，获取该天的任务完成详情 用于弹框
+        public void GetImplementationByDate(string PatientId, string PlanNo, string DateSelected)
         {
-            ImplementationPhone ImplementationPhone = new ImplementationPhone();
-            string str_result = "";
+            TaskComDetailByD TaskComDetailByD = new TaskComDetailByD(); //voidDateTime
+            string str_result = "";  //最终的输出-ImplementationInfo转化成json格式
             try
             {
-                //病人基本信息-头像、姓名.. (由于手机版只针对换换咋用户，基本信息可不用获取
-                // CacheSysList patientList = PsBasicInfo.GetPatientBasicInfo(_cnCache, PatientId);
-                //if (patientList != null)
-                //{
-                //ImplementationPhone.PatientInfo.PatientName = patientList[0];
-                //}
-
-                int planStartDate = 0;
-                int planEndDate = 0;
-                string PlanNo = "";
-
-                InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
-                planInfo = PsPlan.GetExecutingPlanByM(_cnCache, PatientId, Module);
-                if (planInfo != null)
-                {
-                    PlanNo = planInfo[0].ToString();
-                    planStartDate = Convert.ToInt32(planInfo[2]);
-                    planEndDate = Convert.ToInt32(planInfo[3]);  //未用到
-                }
-
-                if ((PlanNo != "") && (PlanNo != null)) //存在正在执行的计划
-                {
-                    //剩余天数和进度
-                    InterSystems.Data.CacheTypes.CacheSysList PRlist = null;
-                    PRlist = PsPlan.GetProgressRate(_cnCache, PlanNo);
-                    if (PRlist != null)
-                    {
-                        ImplementationPhone.RemainingDays = PRlist[0].ToString();  //"距离本次计划结束还剩"+PRlist[0]+"天";
-                        ImplementationPhone.ProgressRate = (Convert.ToDouble(PRlist[1]) * 100).ToString();  //"进度："++"%";
-                    }
-
-                    //最近一周的依从率
-                    InterSystems.Data.CacheTypes.CacheSysList weekPeriod = null;
-                    weekPeriod = PsPlan.GetWeekPeriod(_cnCache, planStartDate);
-                    if (weekPeriod != null)
-                    {
-                        ImplementationPhone.CompliacneValue = PsCompliance.GetCompliacneRate(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]));
-                        ImplementationPhone.StartDate = Convert.ToInt32(weekPeriod[0]);  //用于获取血压的详细数据
-                        ImplementationPhone.EndDate = Convert.ToInt32(weekPeriod[1]);
-                    }
-
-                    #region  读取任务执行情况，血压、用药-最近一周的数据
-
-                    //读取任务  phone版 只显示测量和用药任务
-                    DataTable TaskList = new DataTable();
-                    TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
-
-                    //测量-血压、脉率 （默认显示-收缩压）
-                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
-                    DataRow[] BPRows = TaskList.Select(condition);
-
-                    List<MstBloodPressure> reference = new List<MstBloodPressure>();
-                    ChartData ChartData = new ChartData();
-                    List<Graph> GraphList = new List<Graph>();
-                    GraphGuide GraphGuide = new GraphGuide();
-
-                    if ((BPRows != null) && (BPRows.Length == 3))  //一定会有血压和脉率测量任务  
-                    {
-                        //获取血压的分级规则，脉率的分级原则写死在webservice
-                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
-
-                        //首次进入，默认加载收缩压
-                        GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]), reference);
-
-                        //初始值、目标值、分级规则加工
-                        if (GraphList.Count > 0)
-                        {
-                            GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure_1", reference);
-                            ChartData.GraphGuide = GraphGuide;
-                        }
-                    }
-
-                    //用药情况
-                    #region 用药情况
-
-                    condition = " Type = 'Drug' ";
-                    DataRow[] DrugRows = TaskList.Select(condition);
-                    if ((DrugRows != null) && (DrugRows.Length != 0))
-                    {
-
-                        List<CompliacneDetailByD> DrugComByPeriod = new List<CompliacneDetailByD>();
-                        DrugComByPeriod = PsCompliance.GetDrugComByPeriod(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]));
-                        if ((DrugComByPeriod != null) && (DrugComByPeriod.Count == GraphList.Count))
-                        {
-                            for (int rowsCount = 0; rowsCount < DrugComByPeriod.Count; rowsCount++)
-                            {
-                                //GraphList[rowsCount].DrugValue = "1";
-                                GraphList[rowsCount].DrugBullet = DrugComByPeriod[rowsCount].drugBullet;
-                                GraphList[rowsCount].DrugColor = DrugComByPeriod[rowsCount].drugColor;
-                                GraphList[rowsCount].DrugDescription = DrugComByPeriod[rowsCount].Events;
-                            }
-                        }
-                    }
-
-                    else  //没有用药任务  下图不显示即可
-                    {
-                        for (int m = 0; m < GraphList.Count; m++)
-                        {
-                            GraphList[m].DrugValue = "";
-                            GraphList[m].DrugBullet = "";
-                            GraphList[m].DrugColor = "#FFFFFF";
-                            GraphList[m].DrugDescription = "无用药任务";
-                        }
-                    }
-
-                    #endregion
-
-                    #endregion
-
-                    ChartData.GraphList = GraphList;
-                    ImplementationPhone.ChartData = ChartData;
+                //DateSelected形式"20150618" 或"15/06/18"  目前使用前者
+                int Date = Convert.ToInt32(DateSelected);
+                //string temp = "20" + DateSelected;
+                //int Date = Convert.ToInt32(Convert.ToDateTime(temp).ToString("yyyyMMdd"));
+                //int Date = Convert.ToInt32(DateSelected.ToString("yyyyMMdd"));
+                TaskComDetailByD = PsCompliance.GetImplementationByDate(_cnCache, PatientId, PlanNo, Convert.ToInt32(Date));
 
 
-
-                }
-
-                str_result = JSONHelper.ObjectToJson(ImplementationPhone);
+                str_result = JSONHelper.ObjectToJson(TaskComDetailByD);
                 Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
                 Context.Response.Write(str_result);
                 HttpContext.Current.ApplicationInstance.CompleteRequest();
@@ -10681,11 +10618,13 @@ namespace WebService
             }
             catch (Exception ex)
             {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationForPhone", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationByDate", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
                 //return null;
                 throw (ex);
             }
         }
+
+
 
         //Pad和Phone区别 后者只看最近七天的  其他任务的依从情况也行
         [WebMethod(Description = "获取计划完成情况（Phone)-查看当前计划近一周的情况  Table:计划、任务、依从..  Author:LS 2015-03-27")]
@@ -10745,38 +10684,56 @@ namespace WebService
                     DataTable TaskList = new DataTable();
                     TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
 
-                    //测量-血压、脉率 （默认显示-收缩压）
-                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                    //测量-体征切换下拉框  
+                    string condition = " Type = 'VitalSign'";
                     DataRow[] VitalSignRows = TaskList.Select(condition);
+                    List<SignShow> SignList = new List<SignShow>();
+                    for (int j = 0; j < VitalSignRows.Length; j++)
+                    {
+                        SignShow SignShow = new SignShow();
+                        SignShow.SignName = VitalSignRows[j]["CodeName"].ToString();
+                        SignShow.SignCode = VitalSignRows[j]["Code"].ToString();
+                        SignList.Add(SignShow);
+                    }
+                    ImplementationPhone.SignList = SignList;
+
 
                     List<MstBloodPressure> reference = new List<MstBloodPressure>();
                     ChartData ChartData = new ChartData();
                     List<Graph> GraphList = new List<Graph>();
                     GraphGuide GraphGuide = new GraphGuide();
 
-                    if ((VitalSignRows != null) && (VitalSignRows.Length == 3))  //一定会有血压和脉率测量任务  
+                    if (Module == "M1")  //后期维护的话，在这里添加不同的模块判断
                     {
-                        //获取血压的分级规则，脉率的分级原则写死在webservice
-                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+                        condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                        DataRow[] HyperTensionRows = TaskList.Select(condition);
 
-                        //首次进入，默认加载收缩压
-                        GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]), reference);
-
-                        //初始值、目标值、分级规则加工
-                        if (GraphList.Count > 0)
+                        //注意：需要兼容之前没有脉率的情况
+                        if ((HyperTensionRows != null) && (HyperTensionRows.Length >= 2))  //M1 收缩压（默认显示）、舒张压、脉率  前两者肯定有，脉率不一定有
                         {
-                            GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure_1", reference);
-                            ChartData.GraphGuide = GraphGuide;
+                            //获取血压的分级规则，脉率的分级原则写死在webservice
+                            reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+                            //首次进入，默认加载收缩压
+                            GraphList = CmMstBloodPressure.GetSignInfoByM1(_cnCache, PatientId, PlanNo, "Bloodpressure|Bloodpressure_1", Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]), reference);
+
+                            //初始值、目标值、分级规则加工
+                            if (GraphList.Count > 0)
+                            {
+                                GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure|Bloodpressure_1", reference);
+                                ChartData.GraphGuide = GraphGuide;
+                            }
                         }
+
+                    }
+                    else
+                    {
+
                     }
 
-
-
                     //必有测量任务，其他任务（例如吃药）可能没有
-
-                    //其他任务依从情况
+                    //其他任务依从情况 //是否有其他任务
                     List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
-                    //是否有其他任务
                     //string condition1 = " Type not in ('VitalSign,')";
                     if (TaskList.Rows.Count == VitalSignRows.Length)
                     {
@@ -10785,7 +10742,7 @@ namespace WebService
                     else
                     {
                         ChartData.OtherTasks = "1";
-                        TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]));
+                        TasksComByPeriod = PsCompliance.GetTasksComCountByPeriod(_cnCache, PatientId, PlanNo, Convert.ToInt32(weekPeriod[0]), Convert.ToInt32(weekPeriod[1]));
                         if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
                         {
                             for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
@@ -10820,6 +10777,7 @@ namespace WebService
             }
         }
 
+        //可后期优化
         [WebMethod(Description = "获取某日期之前，一定条数血压（收缩压/舒张压）和脉率的数据详细时刻列表-phone  Table:Ps.VitalSigns  Author:LS 2015-07-02")]
         // GetSignsDetailByPeriod 获取某日期之前，一定条数血压（收缩压/舒张压）和脉率的数据详细时刻列表  LS 2015-07-02  用于phone，支持继续加载
         public void GetSignsDetailByPeriod(string PatientId, string Module, int StartDate, int Num)
@@ -11116,7 +11074,8 @@ namespace WebService
         }
 
 
-        //网站与Pad差别不大，除了输出形式，pad是json，web是xml  web不用基本信息，多出任务列表的输出  研究下web能不能直接掉json
+
+        //网站与Pad差别不大，除了输出形式，pad是json，web是xml  web不用基本信息，多出任务列表的输出  web貌似不能直接调json  web目前暂时ballon显示其他任务所有文本
         [WebMethod(Description = "获取健康计划完成情况（Web)-任务列表、任务完成情况  Table:计划、任务、依从..  Author:LS 2015-06-28")]
         // GetImplementationForWeb 获取计划完成情况（Web）  LS 2015-03-27  
         public ImplementationInfo GetImplementationForWebFirst(string PatientId, string Module)
@@ -11182,29 +11141,48 @@ namespace WebService
                     TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
                     ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
 
-                    //测量-血压、脉率 （默认显示-收缩压）
-                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+
+                    //测量-体征切换下拉框  
+                    string condition = " Type = 'VitalSign'";
                     DataRow[] VitalSignRows = TaskList.Select(condition);
+                    List<SignShow> SignList = new List<SignShow>();
+                    for (int j = 0; j < VitalSignRows.Length; j++)
+                    {
+                        SignShow SignShow = new SignShow();
+                        SignShow.SignName = VitalSignRows[j]["CodeName"].ToString();
+                        SignShow.SignCode = VitalSignRows[j]["Code"].ToString();
+                        SignList.Add(SignShow);
+                    }
+                    ImplementationInfo.SignList = SignList;
 
                     List<MstBloodPressure> reference = new List<MstBloodPressure>();
                     ChartData ChartData = new ChartData();
                     List<Graph> GraphList = new List<Graph>();
                     GraphGuide GraphGuide = new GraphGuide();
 
-                    if ((VitalSignRows != null) && (VitalSignRows.Length == 3))  //一定会有血压和脉率测量任务   记得改回来..
+                    if (Module == "M1")  //后期维护的话，在这里添加不同的模块判断
                     {
-                        //获取血压的分级规则，脉率的分级原则写死在webservice
-                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
 
-                        //首次进入，默认加载收缩压
-                        GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate, reference);
-                        //GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", ImplementationInfo.StartDate, ImplementationInfo.EndDate, reference);
+                        //高血压模块  体征测量-血压（收缩压、舒张压）、脉率   【默认显示-收缩压，血压必有，脉率可能有】  
+                        condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                        DataRow[] HyperTensionRows = TaskList.Select(condition);
 
-                        //初始值、目标值、分级规则加工
-                        if (GraphList.Count > 0)
+                        //注意：需要兼容之前没有脉率的情况
+                        if ((HyperTensionRows != null) && (HyperTensionRows.Length >= 2))  //M1 收缩压（默认显示）、舒张压、脉率  前两者肯定有，脉率不一定有
                         {
-                            GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure_1", reference);
-                            ChartData.GraphGuide = GraphGuide;
+                            //获取血压的分级规则，脉率的分级原则写死在webservice
+                            reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+                            //首次进入，默认加载收缩压
+                            GraphList = CmMstBloodPressure.GetSignInfoByM1(_cnCache, PatientId, PlanNo, "Bloodpressure|Bloodpressure_1", ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate, reference);
+                            //GraphList = CmMstBloodPressure.GetSignInfoByBP
+
+                            //初始值、目标值、分级规则加工
+                            if (GraphList.Count > 0)
+                            {
+                                GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure|Bloodpressure_1", reference);
+                                ChartData.GraphGuide = GraphGuide;
+                            }
                         }
                     }
 
@@ -11220,7 +11198,7 @@ namespace WebService
                     else
                     {
                         ChartData.OtherTasks = "1";
-                        TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate);
+                        TasksComByPeriod = PsCompliance.GetTasksComByPeriodWeb(_cnCache, PatientId, PlanNo, ImplementationInfo.PlanList[0].StartDate, ImplementationInfo.PlanList[0].EndDate);
                         if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
                         {
                             for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
@@ -11254,7 +11232,7 @@ namespace WebService
         {
             ImplementationInfo ImplementationInfo = new ImplementationInfo();
             //string str_result = "";
-
+            string Module = "";
             try
             {
                 //Pad保证PlanNo输入不为空  为空的表示无当前计划，则显示无执行即可，无需连接网络服务
@@ -11269,6 +11247,7 @@ namespace WebService
                     if (planInfo != null)
                     {
                         planStatus = Convert.ToInt32(planInfo[5]);
+                        Module = planInfo[4].ToString();
 
                         ImplementationInfo.StartDate = Convert.ToInt32(planInfo[2]);
                         ImplementationInfo.EndDate = Convert.ToInt32(planInfo[3]);
@@ -11309,28 +11288,47 @@ namespace WebService
                     TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
                     ImplementationInfo.TaskList = PsTask.GetSpTaskList(_cnCache, PlanNo);
 
-                    //测量-血压、脉率 （默认显示-收缩压）
-                    string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2' or  Code = 'Pulserate|Pulserate_1'";
+                    //测量-体征切换下拉框  
+                    string condition = " Type = 'VitalSign'";
                     DataRow[] VitalSignRows = TaskList.Select(condition);
+                    List<SignShow> SignList = new List<SignShow>();
+                    for (int j = 0; j < VitalSignRows.Length; j++)
+                    {
+                        SignShow SignShow = new SignShow();
+                        SignShow.SignName = VitalSignRows[j]["CodeName"].ToString();
+                        SignShow.SignCode = VitalSignRows[j]["Code"].ToString();
+                        SignList.Add(SignShow);
+                    }
+                    ImplementationInfo.SignList = SignList;
+
 
                     List<MstBloodPressure> reference = new List<MstBloodPressure>();
                     ChartData ChartData = new ChartData();
                     List<Graph> GraphList = new List<Graph>();
                     GraphGuide GraphGuide = new GraphGuide();
 
-                    if ((VitalSignRows != null) && (VitalSignRows.Length == 3))  //一定会有血压和脉率测量任务  记得改回来..
+                    if (Module == "M1")  //后期维护的话，在这里添加不同的模块判断
                     {
-                        //获取血压的分级规则，脉率的分级原则写死在webservice
-                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
 
-                        //首次进入，默认加载收缩压
-                        GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, "Bloodpressure_1", ImplementationInfo.StartDate, ImplementationInfo.EndDate, reference);
+                        //高血压模块  体征测量-血压（收缩压、舒张压）、脉率   【默认显示-收缩压，血压必有，脉率可能有】  
+                        condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                        DataRow[] HyperTensionRows = TaskList.Select(condition);
 
-                        //初始值、目标值、分级规则加工
-                        if (GraphList.Count > 0)
+                        //注意：需要兼容之前没有脉率的情况
+                        if ((HyperTensionRows != null) && (HyperTensionRows.Length >= 2))  //M1 收缩压（默认显示）、舒张压、脉率  前两者肯定有，脉率不一定有
                         {
-                            GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure_1", reference);
-                            ChartData.GraphGuide = GraphGuide;
+                            //获取血压的分级规则，脉率的分级原则写死在webservice
+                            reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+
+                            //首次进入，默认加载收缩压
+                            GraphList = CmMstBloodPressure.GetSignInfoByM1(_cnCache, PatientId, PlanNo, "Bloodpressure|Bloodpressure_1", ImplementationInfo.StartDate, ImplementationInfo.EndDate, reference);
+
+                            //初始值、目标值、分级规则加工
+                            if (GraphList.Count > 0)
+                            {
+                                GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, "Bloodpressure|Bloodpressure_1", reference);
+                                ChartData.GraphGuide = GraphGuide;
+                            }
                         }
                     }
 
@@ -11346,7 +11344,7 @@ namespace WebService
                     else
                     {
                         ChartData.OtherTasks = "1";
-                        TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, ImplementationInfo.StartDate, ImplementationInfo.EndDate);
+                        TasksComByPeriod = PsCompliance.GetTasksComByPeriodWeb(_cnCache, PatientId, PlanNo, ImplementationInfo.StartDate, ImplementationInfo.EndDate);
                         if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
                         {
                             for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
@@ -11381,8 +11379,8 @@ namespace WebService
         }
 
         [WebMethod(Description = "获取某体征的数据和画图信息（Web）  Table:Ps.VitalSigns  Author:LS 2015-06-29")]
-        // GetBPInfo1 获取某体征的数据和画图信息（收缩压、舒张压、脉率）  LS 2015-06-29
-        //关于输入 StartDate，EndDate  Pad首次没有拿出StartDate，EndDate    Phone拿出了 这样规划比较好
+        // GetSignInfoByCodeWeb 获取某体征的数据和画图信息（收缩压、舒张压、脉率）  LS 2015-06-29 
+        //关于输入 StartDate，EndDate  Pad首次没有拿出StartDate，EndDate    
         public ChartData GetSignInfoByCodeWeb(string PatientId, string PlanNo, string ItemCode, int StartDate, int EndDate)
         {
             ChartData ChartData = new ChartData();
@@ -11392,22 +11390,23 @@ namespace WebService
 
             try
             {
-                if (ItemCode == "Pulserate_1")
+                string Module = "";
+                InterSystems.Data.CacheTypes.CacheSysList planInfo = null;
+                planInfo = PsPlan.GetPlanInfo(_cnCache, PlanNo);
+                if (planInfo != null)
                 {
-                    GraphList = CmMstBloodPressure.GetSignInfoByPulse(_cnCache, PatientId, PlanNo, ItemCode, StartDate, EndDate);
+                    Module = planInfo[4].ToString();
 
-                    //分级规则加工  脉率没有 初始值和目标值
-                    if (GraphList.Count > 0)
-                    {
-                        GraphGuide = CmMstBloodPressure.GetGuidesByCode(_cnCache, PlanNo, ItemCode, reference);
-                        ChartData.GraphGuide = GraphGuide;
-                    }
                 }
-                else
-                {
 
-                    reference = CmMstBloodPressure.GetBPGrades(_cnCache);
-                    GraphList = CmMstBloodPressure.GetSignInfoByBP(_cnCache, PatientId, PlanNo, ItemCode, StartDate, EndDate, reference);
+                if (Module == "M1")
+                {
+                    if ((ItemCode == "Bloodpressure|Bloodpressure_1") || (ItemCode == "Bloodpressure|Bloodpressure_2"))
+                    {
+                        reference = CmMstBloodPressure.GetBPGrades(_cnCache);
+                    }
+
+                    GraphList = CmMstBloodPressure.GetSignInfoByM1(_cnCache, PatientId, PlanNo, ItemCode, StartDate, EndDate, reference);
 
                     //初始值、目标值、分级规则加工
                     if (GraphList.Count > 0)
@@ -11417,17 +11416,15 @@ namespace WebService
                     }
                 }
 
-                //必有测量任务，其他任务（例如吃药）可能没有
-
-                //读取任务列表
+                //读取任务列表  必有测量任务，其他任务（例如吃药）可能没有
                 DataTable TaskList = new DataTable();
                 TaskList = PsTask.GetTaskList(_cnCache, PlanNo);
-                string condition = " Code = 'Bloodpressure|Bloodpressure_1' or  Code = 'Bloodpressure|Bloodpressure_2'or  Code = 'Pulserate|Pulserate_1'";
+                string condition = " Type = 'VitalSign'";
                 DataRow[] VitalSignRows = TaskList.Select(condition);
 
                 //其他任务依从情况
                 List<CompliacneDetailByD> TasksComByPeriod = new List<CompliacneDetailByD>();
-                //是否有其他任务   //string condition1 = " Type not in ('VitalSign,')";
+                //是否有其他任务
                 if (TaskList.Rows.Count == VitalSignRows.Length)
                 {
                     ChartData.OtherTasks = "0";
@@ -11435,7 +11432,7 @@ namespace WebService
                 else
                 {
                     ChartData.OtherTasks = "1";
-                    TasksComByPeriod = PsCompliance.GetTasksComByPeriod(_cnCache, PatientId, PlanNo, StartDate, EndDate);
+                    TasksComByPeriod = PsCompliance.GetTasksComByPeriodWeb(_cnCache, PatientId, PlanNo, StartDate, EndDate);
                     if ((TasksComByPeriod != null) && (TasksComByPeriod.Count == GraphList.Count))
                     {
                         for (int rowsCount = 0; rowsCount < TasksComByPeriod.Count; rowsCount++)
@@ -11451,10 +11448,6 @@ namespace WebService
 
 
                 return ChartData;
-                //string a = JSONHelper.ObjectToJson(ChartData);
-                //Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
-                //Context.Response.Write(a);
-                //Context.Response.End();
             }
             catch (Exception ex)
             {
@@ -11463,38 +11456,6 @@ namespace WebService
                 throw (ex);
             }
         }
-
-        [WebMethod(Description = "通过某计划的日期，获取该天的任务完成详情 用于图上点点击时弹框内容..  Author:LS 2015-07-02")]
-        //新加 GetImplementationByDate 通过某计划的日期，获取该天的任务完成详情 用于弹框
-        public void GetImplementationByDate(string PatientId, string PlanNo, string DateSelected)
-        {
-            TaskComDetailByD TaskComDetailByD = new TaskComDetailByD(); //voidDateTime
-            string str_result = "";  //最终的输出-ImplementationInfo转化成json格式
-            try
-            {
-                //DateSelected形式"20150618" 或"15/06/18"  目前使用前者
-                int Date = Convert.ToInt32(DateSelected);
-                //string temp = "20" + DateSelected;
-                //int Date = Convert.ToInt32(Convert.ToDateTime(temp).ToString("yyyyMMdd"));
-                //int Date = Convert.ToInt32(DateSelected.ToString("yyyyMMdd"));
-                TaskComDetailByD = PsCompliance.GetImplementationByDate(_cnCache, PatientId, PlanNo, Convert.ToInt32(Date));
-
-
-                str_result = JSONHelper.ObjectToJson(TaskComDetailByD);
-                Context.Response.BinaryWrite(new byte[] { 0xEF, 0xBB, 0xBF });
-                Context.Response.Write(str_result);
-                HttpContext.Current.ApplicationInstance.CompleteRequest();
-                //Context.Response.End();
-                //return ImplementationInfo;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetImplementationByDate", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                //return null;
-                throw (ex);
-            }
-        }
-        
         #endregion
 
         [WebMethod(Description = "获取远程调用的IP，Author:ZC 2015-07-01")]
