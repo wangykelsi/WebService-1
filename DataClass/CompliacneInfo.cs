@@ -60,6 +60,24 @@ namespace WebService.DataClass
         }
     }
 
+    public class SignDetail1   //高血压体征详细-到分 
+    {
+        public string DetailTime { get; set; }           //详细时间 到时分
+
+        //血压 "135/78"
+        //public string BPValue { get; set; }
+
+        public string SignValue { get; set; }        //值 处理后血压值等
+
+        public string Unit { get; set; }        //脉率  "78"
+
+        public SignDetail1()
+        {
+        }
+    }
+
+
+
 
     //任务依从情况 ？
     public class CompliacneDetailByD
@@ -90,18 +108,24 @@ namespace WebService.DataClass
 
         public List<VitalTaskCom> VitalTaskComList { get; set; } //体征测量
 
-        public List<TaskCom> LifeTaskComList { get; set; }//生活方式
+        public List<TaskComByType> TaskComByTypeList { get; set; }//生活方式和用药情况的共同集合类
 
-        public List<TaskCom> DrugTaskComList { get; set; } //用药情况
+        //public List<TaskCom> LifeTaskComList { get; set; }//生活方式
+
+        //public List<TaskCom> DrugTaskComList { get; set; } //用药情况
 
 
         public TaskComDetailByD()
         {
-            LifeTaskComList = new List<TaskCom>();
-
-            DrugTaskComList = new List<TaskCom>();
-
             VitalTaskComList = new List<VitalTaskCom>();
+
+            TaskComByTypeList = new List<TaskComByType>();
+
+            //LifeTaskComList = new List<TaskCom>();
+
+            //DrugTaskComList = new List<TaskCom>();
+
+
         }
 
     }
