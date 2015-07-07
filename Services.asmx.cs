@@ -3106,7 +3106,7 @@ namespace WebService
                 {
                     string uid = item["DoctorId"].ToString();
                     string hospital = CmMstHospital.GetName(_cnCache, PsDoctorInfoDetail.GetValue(_cnCache, uid, "Contact", "Contact001_5", 1));
-                    string dept = CmMstDivision.GetName(_cnCache, 1, PsDoctorInfoDetail.GetValue(_cnCache, uid, "Contact", "Contact001_8", 1));
+                    string dept = CmMstDivision.GetNamebyCode(_cnCache, PsDoctorInfoDetail.GetValue(_cnCache, uid, "Contact", "Contact001_8", 1));
                     list.Rows.Add(uid, item["DoctorName"].ToString(), hospital, dept);
                 }
                 DS_PsDoctorInfoDetail.Tables.Add(list);
@@ -3424,13 +3424,13 @@ namespace WebService
 
         [WebMethod(Description = "获取科室列表 Table:Cm.MstDivision  Author:CSQ 20150121")]
         // GetDeptList 获取科室列表 CSQ 20150121
-        public DataSet GetDeptList(string Type)
+        public DataSet GetDeptList(string TypeCode)
         {
             try
             {
                 DataTable DT_MstDivision = new DataTable();
                 DataSet DS_MstDivision = new DataSet();
-                DT_MstDivision = CmMstDivision.GetDeptList(_cnCache, Type);
+                DT_MstDivision = CmMstDivision.GetDeptList(_cnCache, TypeCode);
                 DS_MstDivision.Tables.Add(DT_MstDivision);
                 return DS_MstDivision;
             }
@@ -10028,8 +10028,8 @@ namespace WebService
                     string deptCode = PsDoctorInfoDetail.GetValue(_cnCache, uid, "Contact", "Contact001_8", 1);
                     string dept = "";
                     if (deptCode != null)
-                    { 
-                        dept = CmMstDivision.GetName(_cnCache, 1, deptCode);
+                    {
+                        dept = CmMstDivision.GetNamebyCode(_cnCache, deptCode);
                     }
                     list.Rows.Add(uid, item["UserName"].ToString(), hospital, dept);
                 }
