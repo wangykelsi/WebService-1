@@ -1928,12 +1928,12 @@ namespace WebService
         }
 
         [WebMethod(Description = "SetData Table：Cm.MstLabTestSubItems Author:YDS  2014-12-03")]
-        public bool SetLabTestSubItems(string Code, string SubCode, string Name, int SortNo, string Redundance, int InvalidFlag)
+        public bool SetLabTestSubItems(string Code, string Name, int SortNo, string InputCode, string Redundance, int InvalidFlag)
         {
             try
             {
                 bool ret = false;
-                ret = CmMstLabTestSubItems.SetData(_cnCache, Code, SubCode, Name, SortNo, Redundance, InvalidFlag);
+                ret = CmMstLabTestSubItems.SetData(_cnCache, Code, Name, SortNo, InputCode, Redundance, InvalidFlag);
                 return ret;
             }
             catch (Exception ex)
@@ -1965,12 +1965,12 @@ namespace WebService
         }
 
         [WebMethod(Description = "DeleteData Table：Cm.MstLabTestSubItems Author:YDS  2014-12-03")]
-        public int DeleteLabTestSubItems(string Code, string SubCode)
+        public int DeleteLabTestSubItems(string Code)
         {
             try
             {
                 int ret = 0;
-                ret = CmMstLabTestSubItems.DeleteData(_cnCache, Code, SubCode);
+                ret = CmMstLabTestSubItems.DeleteData(_cnCache, Code);
                 return ret;
             }
             catch (Exception ex)

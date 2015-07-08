@@ -62,7 +62,9 @@ namespace WebService.DataMethod
         {
             DataTable list = new DataTable();
             list.Columns.Add(new DataColumn("DrugCode", typeof(string)));
+            list.Columns.Add(new DataColumn("DrugSpec", typeof(string)));
             list.Columns.Add(new DataColumn("DrugName", typeof(string)));
+            list.Columns.Add(new DataColumn("InputCode", typeof(string)));
 
             CacheCommand cmd = null;
             CacheDataReader cdr = null;
@@ -80,7 +82,7 @@ namespace WebService.DataMethod
                 cdr = cmd.ExecuteReader();
                 while (cdr.Read())
                 {
-                    list.Rows.Add(cdr["DrugCode"].ToString(), cdr["DrugName"].ToString());
+                    list.Rows.Add(cdr["DRUGCODE"].ToString(), cdr["DRUGSPEC"].ToString(), cdr["DRUGNAME"].ToString(), cdr["INPUTCODE"].ToString());
                 }
                 return list;
             }
