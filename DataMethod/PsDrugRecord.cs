@@ -82,7 +82,21 @@ namespace WebService.DataMethod
                 cdr = cmd.ExecuteReader();
                 while (cdr.Read())
                 {
-                    list.Rows.Add(cdr["VisitId"].ToString(), cdr["OrderNo"].ToString(), cdr["OrderSubNo"].ToString(), cdr["RepeatIndicatorCode"].ToString(), cdr["RepeatIndicator"].ToString(), cdr["OrderClassCode"].ToString(), cdr["OrderClass"].ToString(), cdr["OrderCode"].ToString(), cdr["OrderContent"].ToString(), cdr["Dosage"].ToString(), cdr["DosageUnitsCode"].ToString(), cdr["DosageUnits"].ToString(), cdr["AdministrationCode"].ToString(), cdr["Administration"].ToString(), cdr["StartDateTime"].ToString(), cdr["StopDateTime"].ToString(), cdr["Frequency"].ToString(), cdr["FreqCounter"].ToString(), cdr["FreqInteval"].ToString(), cdr["FreqIntevalUnitCode"].ToString(), cdr["FreqIntevalUnit"].ToString(), cdr["DeptCode"].ToString(), cdr["DeptName"].ToString(), cdr["Creator"].ToString());
+                    string startTime = "";
+                    if (cdr["StartDateTime"].ToString() != null && cdr["StartDateTime"].ToString() != "")
+                    {
+                        startTime = Convert.ToDateTime(cdr["StartDateTime"].ToString()).ToString("yyyy-MM-dd HH:mm:ss");
+                    }
+                    string endTime = "";
+                    if (cdr["StopDateTime"].ToString() != null && cdr["StopDateTime"].ToString() != "")
+                    {
+                        endTime = Convert.ToDateTime(cdr["StopDateTime"].ToString()).ToString("yyyy-MM-dd HH:mm:ss");
+                    }
+                    list.Rows.Add(cdr["VisitId"].ToString(), cdr["OrderNo"].ToString(), cdr["OrderSubNo"].ToString(), cdr["RepeatIndicatorCode"].ToString()
+                        , cdr["RepeatIndicator"].ToString(), cdr["OrderClassCode"].ToString(), cdr["OrderClass"].ToString(), cdr["OrderCode"].ToString()
+                        , cdr["OrderContent"].ToString(), cdr["Dosage"].ToString(), cdr["DosageUnitsCode"].ToString(), cdr["DosageUnits"].ToString()
+                        , cdr["AdministrationCode"].ToString(), cdr["Administration"].ToString(), startTime, endTime, cdr["Frequency"].ToString(), cdr["FreqCounter"].ToString()
+                        , cdr["FreqInteval"].ToString(), cdr["FreqIntevalUnitCode"].ToString(), cdr["FreqIntevalUnit"].ToString(), cdr["DeptCode"].ToString(), cdr["DeptName"].ToString(), cdr["Creator"].ToString());
                 }
                 return list;
             }

@@ -544,6 +544,7 @@ namespace WebService.DataMethod
                         break;
                     //case "DrugRecord": list = PsDrugRecord.GetDrugRecord(pclsCache, UserId, VisitId); //用药
                     case "DrugRecord": list = PsDrugRecord.GetDrugRecordList(pclsCache, UserId, VisitId); //用药
+                        condition = "StartDateTime = '" + Date + "'";
                         break;
                     default: break;
                 }

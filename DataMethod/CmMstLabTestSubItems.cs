@@ -11,7 +11,7 @@ namespace WebService.DataMethod
     public class CmMstLabTestSubItems
     {
         //SetData CSQ 2014-12-01
-        public static bool SetData(DataConnection pclsCache, string Code, string SubCode, string Name, int SortNo, string Redundance, int InvalidFlag)
+        public static bool SetData(DataConnection pclsCache, string Code, string Name, int SortNo, string InputCode, string Redundance, int InvalidFlag)
         {
             bool IsSaved = false;
             try
@@ -22,7 +22,7 @@ namespace WebService.DataMethod
                     return IsSaved;
 
                 }
-                int flag = (int)Cm.MstLabTestSubItems.SetData(pclsCache.CacheConnectionObject, Code, SubCode, Name, SortNo, Redundance, InvalidFlag);
+                int flag = (int)Cm.MstLabTestSubItems.SetData(pclsCache.CacheConnectionObject, Code, Name, SortNo, InputCode, Redundance, InvalidFlag);
                 if (flag == 1)
                 {
                     IsSaved = true;
@@ -46,9 +46,9 @@ namespace WebService.DataMethod
         {
             DataTable list = new DataTable();
             list.Columns.Add(new DataColumn("Code", typeof(string)));
-            list.Columns.Add(new DataColumn("SubCode", typeof(string)));
             list.Columns.Add(new DataColumn("Name", typeof(string)));
             list.Columns.Add(new DataColumn("SortNo", typeof(int)));
+            list.Columns.Add(new DataColumn("InputCode", typeof(string)));
             list.Columns.Add(new DataColumn("Redundance", typeof(string)));
             list.Columns.Add(new DataColumn("InvalidFlag", typeof(int)));
 
@@ -87,7 +87,7 @@ namespace WebService.DataMethod
                     {
                         InvalidFlag = Convert.ToInt32(cdr["InvalidFlag"]);
                     }
-                    list.Rows.Add(cdr["Code"].ToString(), cdr["SubCode"].ToString(), cdr["Name"].ToString(), SortNo, cdr["Redundance"].ToString(), InvalidFlag);
+                    list.Rows.Add(cdr["Code"].ToString(), cdr["Name"].ToString(), SortNo, cdr["InputCode"].ToString(), cdr["Redundance"].ToString(), InvalidFlag);
                 }
                 return list;
             }
@@ -116,7 +116,7 @@ namespace WebService.DataMethod
         }
 
         //DeleteData CSQ 2014-12-01
-        public static int DeleteData(DataConnection pclsCache, string Code, string SubCode)
+        public static int DeleteData(DataConnection pclsCache, string Code)
         {
             int ret = 0;
             try
@@ -127,7 +127,7 @@ namespace WebService.DataMethod
                     return ret;
 
                 }
-                ret = (int)Cm.MstLabTestSubItems.DeleteData(pclsCache.CacheConnectionObject, Code, SubCode);
+                ret = (int)Cm.MstLabTestSubItems.DeleteData(pclsCache.CacheConnectionObject, Code);
                 return ret;
             }
             catch (Exception ex)
@@ -143,7 +143,7 @@ namespace WebService.DataMethod
         }
 
         // GetName CSQ 2014-12-01
-        public static string GetName(DataConnection pclsCache, string Code, string SubCode)
+        public static string GetName(DataConnection pclsCache, string Code)
         {
             try
             {
@@ -152,7 +152,7 @@ namespace WebService.DataMethod
                     //MessageBox.Show("Cache数据库连接失败");
                     return null;
                 }
-                string Name = Cm.MstLabTestSubItems.GetName(pclsCache.CacheConnectionObject, Code, SubCode);
+                string Name = Cm.MstLabTestSubItems.GetName(pclsCache.CacheConnectionObject, Code);
                 return Name;
             }
             catch (Exception ex)
@@ -174,6 +174,7 @@ namespace WebService.DataMethod
             list.Columns.Add(new DataColumn("CodeSubCode", typeof(string)));
             //list.Columns.Add(new DataColumn("SubCode", typeof(string)));
             list.Columns.Add(new DataColumn("Name", typeof(string)));
+            list.Columns.Add(new DataColumn("InputCode", typeof(string)));
 
             CacheCommand cmd = null;
             CacheDataReader cdr = null;
@@ -193,7 +194,7 @@ namespace WebService.DataMethod
                 cdr = cmd.ExecuteReader();
                 while (cdr.Read())
                 {
-                    list.Rows.Add(cdr["CodeSubCode"].ToString(), cdr["Name"].ToString());
+                    list.Rows.Add(cdr["Code"].ToString(), cdr["Name"].ToString(), cdr["InputCode"].ToString());
                 }
                 return list;
             }
