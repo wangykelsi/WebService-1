@@ -5457,6 +5457,23 @@ namespace WebService
             }
         }
 
+        [WebMethod(Description = "删除患者模块信息 Table：Ps.BasicInfoDetail Author:LY  2015-7-9")]
+        //插入患者详细信息 LS 2014-12-03
+        public int DeleteModuleDetail(string Patient, string CategoryCode)
+        {
+            try
+            {
+                int ret = PsBasicInfoDetail.DeleteAll(_cnCache, Patient, CategoryCode);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "DeleteModuleDetail", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return 0;
+                throw ex;
+            }
+        }
+
         #endregion
 
         #region <" 患者信息2（ClinicalInfo）LS">
