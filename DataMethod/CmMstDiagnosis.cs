@@ -11,7 +11,7 @@ namespace WebService.DataMethod
     public class CmMstDiagnosis
     {
         //SetData 写数据 ZYF 2014-12-01
-        public static bool SetData(DataConnection pclsCache, string Type, string Code, string TypeName, string Name, string InputCode, int SortNo, string Redundance, int InvalidFlag)
+        public static bool SetData(DataConnection pclsCache, string Type, string Code, string TypeName, string Name, string InputCode, string Redundance, int InvalidFlag)
         {
             bool IsSaved = false;
             try
@@ -22,7 +22,7 @@ namespace WebService.DataMethod
                     return IsSaved;
 
                 }
-                int flag = (int)Cm.MstDiagnosis.SetData(pclsCache.CacheConnectionObject, Type, Code, TypeName, Name, InputCode, SortNo, Redundance, InvalidFlag);
+                int flag = (int)Cm.MstDiagnosis.SetData(pclsCache.CacheConnectionObject, Type, Code, TypeName, Name, InputCode, Redundance, InvalidFlag);
                 if (flag == 1)
                 {
                     IsSaved = true;
@@ -315,5 +315,57 @@ namespace WebService.DataMethod
                 pclsCache.DisConnect();
             }
         }
+
+        // GetNamebyCode wf 2015-07-07
+        public static string GetNamebyCode(DataConnection pclsCache, string Code)
+        {
+            try
+            {
+                if (!pclsCache.Connect())
+                {
+                    //MessageBox.Show("Cache数据库连接失败");
+                    return null;
+                }
+                string Name = Cm.MstDiagnosis.GetNamebyCode(pclsCache.CacheConnectionObject, Code);
+                return Name;
+            }
+            catch (Exception ex)
+            {
+                //MessageBox.Show(ex.ToString(), "获取名称失败！");
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Cm.MstDiagnosis.GetNamebyCode", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+            }
+            finally
+            {
+                pclsCache.DisConnect();
+            }
+        }
+
+        // GetTypeNamebyType wf 2015-07-09
+        public static string GetTypeNamebyType(DataConnection pclsCache, string Type)
+        {
+            try
+            {
+                if (!pclsCache.Connect())
+                {
+                    //MessageBox.Show("Cache数据库连接失败");
+                    return null;
+                }
+                string Name = Cm.MstDiagnosis.GetTypeNamebyType(pclsCache.CacheConnectionObject, Type);
+                return Name;
+            }
+            catch (Exception ex)
+            {
+                //MessageBox.Show(ex.ToString(), "获取名称失败！");
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Cm.MstDiagnosis.GetTypeNamebyType", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+            }
+            finally
+            {
+                pclsCache.DisConnect();
+            }
+        }
+    
+    
     }
 }
