@@ -6475,8 +6475,9 @@ namespace WebService
             {
                 DataTable DT_ClinicInfoDetail = new DataTable();
                 DataSet DS_ClinicInfoDetail = new DataSet();
-                string date = Date.Substring(0, 10) + " " + Date.Substring(10, 8);
-                string date_final = Convert.ToDateTime(date).ToString("yyyy/M/d H:mm:ss");
+                //string date = Date.Substring(0, 10) + " " + Date.Substring(10, 8);
+                //string date_final = Convert.ToDateTime(date).ToString("yyyy/M/d H:mm:ss");
+                string date_final = Date.Substring(0, 10) + " " + Date.Substring(10, 8);
                 DT_ClinicInfoDetail = PsClinicalInfo.GetClinicInfoDetail(_cnCache, UserId, Type, VisitId, date_final);
                 DS_ClinicInfoDetail.Tables.Add(DT_ClinicInfoDetail);
                 return DS_ClinicInfoDetail;
