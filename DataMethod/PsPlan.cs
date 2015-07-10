@@ -350,7 +350,7 @@ namespace WebService.DataMethod
                     PlanDeatil.EndDate = Convert.ToInt32(endingPlanList.Rows[i]["EndDate"]);
                     string temp = PlanDeatil.StartDate.ToString().Substring(0, 4) + "/" + PlanDeatil.StartDate.ToString().Substring(4, 2) + "/" + PlanDeatil.StartDate.ToString().Substring(6, 2);
                     string temp1 = PlanDeatil.EndDate.ToString().Substring(0, 4) + "/" + PlanDeatil.EndDate.ToString().Substring(4, 2) + "/" + PlanDeatil.EndDate.ToString().Substring(6, 2);
-                    PlanDeatil.PlanName = "计划：" + temp + "-" + temp1;
+                    PlanDeatil.PlanName = "往期：" + temp + "-" + temp1;
                     result.Add(PlanDeatil);
                 }
 

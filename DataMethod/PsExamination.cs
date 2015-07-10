@@ -149,6 +149,7 @@ namespace WebService.DataMethod
             //list.Columns.Add(new DataColumn("ExamDateShow", typeof(string)));
             //list.Columns.Add(new DataColumn("ReportDateShow", typeof(string)));
             list.Columns.Add(new DataColumn("Creator", typeof(string)));
+            list.Columns.Add(new DataColumn("ExamDateCom", typeof(string)));   //20150709 LS
 
             CacheCommand cmd = null;
             CacheDataReader cdr = null;
@@ -186,7 +187,7 @@ namespace WebService.DataMethod
                     {
                         ReportDateShow = cdr["ReportDate"].ToString();
                     }
-                    list.Rows.Add(cdr["VisitId"].ToString(), cdr["SortNo"].ToString(), cdr["ExamType"].ToString(), cdr["ExamTypeName"].ToString(), cdr["ExamDate"].ToString(), cdr["ItemCode"].ToString(), cdr["ItemName"].ToString(), cdr["ExamPara"].ToString(), cdr["Description"].ToString(), cdr["Impression"].ToString(), cdr["Recommendation"].ToString(), cdr["IsAbnormalCode"].ToString(), cdr["IsAbnormal"].ToString(), cdr["StatusCode"].ToString(), cdr["Status"].ToString(), ReportDateShow, cdr["ImageURL"].ToString(), cdr["DeptCode"].ToString(), cdr["DeptName"].ToString(), cdr["Creator"].ToString());
+                    list.Rows.Add(cdr["VisitId"].ToString(), cdr["SortNo"].ToString(), cdr["ExamType"].ToString(), cdr["ExamTypeName"].ToString(), cdr["ExamDate"].ToString(), cdr["ItemCode"].ToString(), cdr["ItemName"].ToString(), cdr["ExamPara"].ToString(), cdr["Description"].ToString(), cdr["Impression"].ToString(), cdr["Recommendation"].ToString(), cdr["IsAbnormalCode"].ToString(), cdr["IsAbnormal"].ToString(), cdr["StatusCode"].ToString(), cdr["Status"].ToString(), ReportDateShow, cdr["ImageURL"].ToString(), cdr["DeptCode"].ToString(), cdr["DeptName"].ToString(), cdr["Creator"].ToString(),Convert.ToDateTime(cdr["ExamDate"]).ToString("yyyy-MM-dd HH:mm:ss"));
                 }
                 return list;
             }

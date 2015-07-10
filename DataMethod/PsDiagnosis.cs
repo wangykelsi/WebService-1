@@ -102,6 +102,7 @@ namespace WebService.DataMethod
             list.Columns.Add(new DataColumn("RecordDate", typeof(string)));
             list.Columns.Add(new DataColumn("RecordDateShow", typeof(string)));
             list.Columns.Add(new DataColumn("Creator", typeof(string)));   //20150124 CSQ
+            list.Columns.Add(new DataColumn("RecordDateCom", typeof(string)));   //20150709 LS
 
             CacheCommand cmd = null;
             CacheDataReader cdr = null;
@@ -125,7 +126,7 @@ namespace WebService.DataMethod
                     {
                         RecordDateShow = str1.Substring(0, 4) + "-" + str1.Substring(4, 2) + "-" + str1.Substring(6, 2);
                     }
-                    list.Rows.Add(cdr["VisitId"].ToString(), cdr["DiagnosisType"].ToString(), cdr["DiagnosisTypeName"].ToString(), cdr["DiagnosisNo"].ToString(), cdr["Type"].ToString(), cdr["TypeName"].ToString(), cdr["DiagnosisCode"].ToString(), cdr["DiagnosisName"].ToString(), cdr["Description"].ToString(), cdr["RecordDate"].ToString(), RecordDateShow, cdr["Creator"].ToString());
+                    list.Rows.Add(cdr["VisitId"].ToString(), cdr["DiagnosisType"].ToString(), cdr["DiagnosisTypeName"].ToString(), cdr["DiagnosisNo"].ToString(), cdr["Type"].ToString(), cdr["TypeName"].ToString(), cdr["DiagnosisCode"].ToString(), cdr["DiagnosisName"].ToString(), cdr["Description"].ToString(), cdr["RecordDate"].ToString(), RecordDateShow, cdr["Creator"].ToString(), Convert.ToDateTime(cdr["RecordDate"]).ToString("yyyy-MM-dd HH:mm:ss"));
                 }
                 return list;
             }
