@@ -253,5 +253,32 @@ namespace WebService.DataMethod
                 pclsCache.DisConnect();
             }
         }
+
+        // GetTypeNamebyType wf 2015-07-09
+        public static string GetTypeNamebyType(DataConnection pclsCache, int Type)
+        {
+            try
+            {
+                if (!pclsCache.Connect())
+                {
+                    //MessageBox.Show("Cache数据库连接失败");
+                    return null;
+                }
+                string Name = Cm.MstDivision.GetTypeNamebyType(pclsCache.CacheConnectionObject, Type);
+                return Name;
+            }
+            catch (Exception ex)
+            {
+                //MessageBox.Show(ex.ToString(), "获取名称失败！");
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "CmMstDivision.GetTypeNamebyType", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+            }
+            finally
+            {
+                pclsCache.DisConnect();
+            }
+        }
+    
+    
     }
 }

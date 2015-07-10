@@ -153,6 +153,14 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>bin\Cache.Mb.MessageRecord.dll</HintPath>
     </Reference>
+    <Reference Include="Cache.Mp.DiagnosisCmp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Mp.DiagnosisCmp.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Mp.DivisionCmp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Mp.DivisionCmp.dll</HintPath>
+    </Reference>
     <Reference Include="Cache.Ps.BasicInfo, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>bin\Cache.Ps.BasicInfo.dll</HintPath>
@@ -236,6 +244,14 @@
     <Reference Include="Cache.Ps.VitalSigns, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>bin\Cache.Ps.VitalSigns.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Tmp.DiagnosisDict, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Tmp.DiagnosisDict.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Tmp.DivisionDict, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Tmp.DivisionDict.dll</HintPath>
     </Reference>
     <Reference Include="Cache.Wn.MstBasicAlert, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -348,6 +364,8 @@
     <Compile Include="DataMethod\CmRole2Authority.cs" />
     <Compile Include="CommonLibrary\DataConnection.cs" />
     <Compile Include="CommonLibrary\Configuration.cs" />
+    <Compile Include="DataMethod\MpDiagnosisCmp.cs" />
+    <Compile Include="DataMethod\MpDivisionCmp.cs" />
     <Compile Include="DataMethod\PsCompliance.cs" />
     <Compile Include="DataMethod\PsComplianceDetail.cs" />
     <Compile Include="DataMethod\PsInPatientInfo.cs" />
@@ -378,6 +396,8 @@
     <Compile Include="DataMethod\PsTreatmentIndicators.cs" />
     <Compile Include="DataMethod\PsVisitIdMatch.cs" />
     <Compile Include="DataMethod\PsVitalSigns.cs" />
+    <Compile Include="DataMethod\TmpDiagnosisDict.cs" />
+    <Compile Include="DataMethod\TmpDivisionDict.cs" />
     <Compile Include="DataMethod\WnMstBasicAlert.cs" />
     <Compile Include="DataMethod\WnMstPersonalAlert.cs" />
     <Compile Include="DataMethod\WnTrnAlertRecord.cs" />

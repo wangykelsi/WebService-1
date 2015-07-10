@@ -1495,42 +1495,6 @@ namespace WebService
             }
         }
 
-        [WebMethod(Description = "SetData Table：Cm.MstDivision Author:YDS  2014-12-03")]
-        public bool SetDivision(int piType, string piCode, string piTypeName, string piName, string piInputCode, string piDescription, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
-        {
-            try
-            {
-                bool ret = false;
-                ret = CmMstDivision.SetData(_cnCache, piType, piCode, piTypeName, piName, piInputCode, piDescription, revUserId, TerminalName, TerminalIP, DeviceType);
-                return ret;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "SetDivision", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return false;
-                throw (ex);
-            }
-        }
-
-        [WebMethod(Description = "获取字典表全部信息 Table：Cm.MstDivision Author:YDS  2014-12-03")]
-        //获取字典表全部信息
-        public DataSet GetDivision()
-        {
-            try
-            {
-                DataTable DT_MstDivision = new DataTable();
-                DataSet DS_MstDivision = new DataSet();
-                DT_MstDivision = CmMstDivision.GetDivision(_cnCache);
-                DS_MstDivision.Tables.Add(DT_MstDivision);
-                return DS_MstDivision;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetDivision", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return null;
-                throw (ex);
-            }
-        }
 
         [WebMethod(Description = "DeleteData Table：Cm.MstDivision Author:YDS  2014-12-03")]
         public int DeleteDivision(int Type, string Code)
@@ -1653,43 +1617,6 @@ namespace WebService
             {
                 HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "DeleteSymptoms", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
                 return 0;
-                throw (ex);
-            }
-        }
-
-        [WebMethod(Description = "SetData Table：Cm.MstDiagnosis Author:YDS  2014-12-03")]
-        public bool SetDiagnosis(string Type, string Code, string TypeName, string Name, string InputCode, int SortNo, string Redundance, int InvalidFlag)
-        {
-            try
-            {
-                bool ret = false;
-                ret = CmMstDiagnosis.SetData(_cnCache, Type, Code, TypeName, Name, InputCode, SortNo, Redundance, InvalidFlag);
-                return ret;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "SetDiagnosis", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return false;
-                throw (ex);
-            }
-        }
-
-        [WebMethod(Description = "获取字典表全部信息 Table：Cm.MstDiagnosis Author:YDS  2014-12-03")]
-        //获取字典表全部信息
-        public DataSet GetDiagnosis()
-        {
-            try
-            {
-                DataTable DT_MstDiagnosis = new DataTable();
-                DataSet DS_MstDiagnosis = new DataSet();
-                DT_MstDiagnosis = CmMstDiagnosis.GetDiagnosis(_cnCache);
-                DS_MstDiagnosis.Tables.Add(DT_MstDiagnosis);
-                return DS_MstDiagnosis;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetDiagnosis", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return null;
                 throw (ex);
             }
         }
@@ -2616,8 +2543,340 @@ namespace WebService
         }
         #endregion
 
+        #region <" 字典维护界面 集成同步 WF">
+
+        #region <"科室 字典维护界面 集成同步 WF">
+        [WebMethod(Description = "获取字典表全部信息 Table：Cm.MstDivision Author:WF  2015-07-07")]
+        public DataSet GetDivision()
+        {
+            try
+            {
+                DataTable DT_MstDivision = new DataTable();
+                DataSet DS_MstDivision = new DataSet();
+                DT_MstDivision = CmMstDivision.GetDivision(_cnCache);
+                DS_MstDivision.Tables.Add(DT_MstDivision);
+                return DS_MstDivision;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetDivision", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+                throw (ex);
+            }
+        }
+
+        [WebMethod(Description = "SetData Table：Cm.MstDivision Author:WF  2015-07-07")]
+        public bool SetDivision(int piType, string piCode, string piTypeName, string piName, string piInputCode, string piDescription, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
+        {
+            try
+            {
+                bool ret = false;
+                ret = CmMstDivision.SetData(_cnCache, piType, piCode, piTypeName, piName, piInputCode, piDescription, revUserId, TerminalName, TerminalIP, DeviceType);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "SetDivision", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return false;
+                throw (ex);
+            }
+        }
+
+        [WebMethod(Description = "SetData Table：Tmp.DivisionDict Author:WF  2015-07-07")]
+        public bool SetTmpDivisionDict(string HospitalCode, string Type, string Code, string TypeName, string Name, string InputCode, string Description, int Status, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
+        {
+            try
+            {
+                bool ret = false;
+                ret = TmpDivisionDict.SetData(_cnCache, HospitalCode, Type, Code, TypeName, Name, InputCode, Description, Status, revUserId, TerminalName, TerminalIP, DeviceType);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "SetTmpDivisionDict", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return false;
+                throw (ex);
+            }
+        }
+
+
+        [WebMethod(Description = "ChangeStatus Table：Tmp.DivisionDict Author:WF  2015-07-07")]
+        public bool ChangeStatusForTmpDivision(string HospitalCode, string Type, string Code, int Status)
+        {
+            try
+            {
+                bool Flag = false;
+                Flag = TmpDivisionDict.ChangeStatus(_cnCache, HospitalCode, Type, Code, Status);
+                return Flag;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "ChangeStatusForTmpDivision", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return false;
+                throw ex;
+            }
+        }
+
+        [WebMethod(Description = "GetListByStatus Table：Tmp.DivisionDict Author:WF  2015-07-07")]
+        public DataSet GetTmpDivisionByStatus(int Status)
+        {
+            try
+            {
+                DataTable DT_MstDivision = new DataTable();
+                DataSet DS_MstDivision = new DataSet();
+                DT_MstDivision = TmpDivisionDict.GetListByStatus(_cnCache, Status);
+                DS_MstDivision.Tables.Add(DT_MstDivision);
+                return DS_MstDivision;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetTmpDivisionByStatus", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+                throw (ex);
+            }
+        }
+
+        [WebMethod(Description = "SetData Table：Mp.DivisionCmp Author:WF  2015-07-07")]
+        public bool SetMpDivisionCmp(string HospitalCode, int Type, string Code, string HZCode, string Redundance, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
+        {
+            try
+            {
+                bool ret = false;
+                ret = MpDivisionCmp.SetData(_cnCache, HospitalCode, Type, Code, HZCode, Redundance, revUserId, TerminalName, TerminalIP, DeviceType);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "SetMpDivisionCmp", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return false;
+                throw (ex);
+            }
+        }
+
+        [WebMethod(Description = "DeleteMpDivisionCmp Table：Mp.DivisionCmp Author:WF  2015-07-07")]
+        public bool DeleteMpDivisionCmp(string HospitalCode, string HZCode)
+        {
+            try
+            {
+                bool Flag = false;
+                Flag = MpDivisionCmp.Delete(_cnCache, HospitalCode, HZCode);
+                return Flag;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "DeleteMpDivisionCmp", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return false;
+                throw ex;
+            }
+        }
+
+        [WebMethod(Description = "GetMpDivisionCmp Table：Mp.DivisionCmp Author:WF  2015-07-07")]
+        public DataSet GetMpDivisionCmp()
+        {
+            try
+            {
+                DataTable DT_MstDivision = new DataTable();
+                DataSet DS_MstDivision = new DataSet();
+                DT_MstDivision = MpDivisionCmp.GetMpDivisionCmp(_cnCache);
+                DS_MstDivision.Tables.Add(DT_MstDivision);
+                return DS_MstDivision;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetMpDivisionCmp", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+                throw (ex);
+            }
+        }
+
+        [WebMethod(Description = "GetNamebyCode Table: Cm.MstDivision Author:WF  2015-07-07")]
+        public string GetDivisionNamebyCode(string Code)
+        {
+            try
+            {
+                string ret = null;
+                ret = CmMstDivision.GetNamebyCode(_cnCache, Code);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetNamebyCode ", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+                throw (ex);
+            }
+        }
+
+       [WebMethod(Description = "GetTypeNamebyType Table: Cm.MstDivision Author:WF  2015-07-07")]
+        public string GetDivisionTypeNamebyType(int Type)
+        {
+            try
+            {
+                string ret = null;
+                ret = CmMstDivision.GetTypeNamebyType(_cnCache, Type);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetTypeNamebyType ", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
+                throw (ex);
+            }
+        }
+        
+        #endregion
+
+        #region <"诊断 字典维护界面 集成同步 WF">
+       [WebMethod(Description = "SetData Table：Cm.MstDiagnosis Author:YDS  2014-12-03")]
+       public bool SetDiagnosis(string Type, string Code, string TypeName, string Name, string InputCode, string Redundance, int InvalidFlag)
+       {
+           try
+           {
+               bool ret = false;
+               ret = CmMstDiagnosis.SetData(_cnCache, Type, Code, TypeName, Name, InputCode, Redundance, InvalidFlag);
+               return ret;
+           }
+           catch (Exception ex)
+           {
+               HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "SetDiagnosis", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+               return false;
+               throw (ex);
+           }
+       }
+
+       [WebMethod(Description = "获取字典表全部信息 Table：Cm.MstDiagnosis Author:YDS  2014-12-03")] 
+       public DataSet GetDiagnosis()
+       {
+           try
+           {
+               DataTable DT_MstDiagnosis = new DataTable();
+               DataSet DS_MstDiagnosis = new DataSet();
+               DT_MstDiagnosis = CmMstDiagnosis.GetDiagnosis(_cnCache);
+               DS_MstDiagnosis.Tables.Add(DT_MstDiagnosis);
+               return DS_MstDiagnosis;
+           }
+           catch (Exception ex)
+           {
+               HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetDiagnosis", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+               return null;
+               throw (ex);
+           }
+       }
+
+       [WebMethod(Description = "GetNamebyCode Table: Cm.MstDiagnosis Author:WF  2015-07-07")]
+       public string GetDiagnosisNamebyCode(string Code)
+       {
+           try
+           {
+               string ret = null;
+               ret = CmMstDiagnosis.GetNamebyCode(_cnCache, Code);
+               return ret;
+           }
+           catch (Exception ex)
+           {
+               HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetNamebyCode ", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+               return null;
+               throw (ex);
+           }
+       }
+
+       [WebMethod(Description = "GetTypeNamebyType Table: Cm.MstDiagnosis Author:WF  2015-07-07")]
+       public string GetDiagnosisTypeNamebyType(string Type)
+       {
+           try
+           {
+               string ret = null;
+               ret = CmMstDiagnosis.GetTypeNamebyType(_cnCache, Type);
+               return ret;
+           }
+           catch (Exception ex)
+           {
+               HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetTypeNamebyType ", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+               return null;
+               throw (ex);
+           }
+       }
+
+
+       [WebMethod(Description = "ChangeStatus Table：Tmp.DiagnosisDict Author:WF  2015-07-07")]
+       public bool ChangeStatusForTmpDiagnosis(string HospitalCode, string Code, int Status)
+       {
+           try
+           {
+               bool Flag = false;
+               Flag = TmpDiagnosisDict.ChangeStatus(_cnCache, HospitalCode, Code, Status);
+               return Flag;
+           }
+           catch (Exception ex)
+           {
+               HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "ChangeStatusForTmpDiagnosis", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+               return false;
+               throw ex;
+           }
+       }
+
+       [WebMethod(Description = "GetListByStatus Table：Tmp.DiagnosisDict Author:WF  2015-07-07")]
+       public DataSet GetTmpDiagnosisByStatus(int Status)
+       {
+           try
+           {
+               DataTable DT_MstDiagnosis = new DataTable();
+               DataSet DS_MstDiagnosis = new DataSet();
+               DT_MstDiagnosis = TmpDiagnosisDict.GetListByStatus(_cnCache, Status);
+               DS_MstDiagnosis.Tables.Add(DT_MstDiagnosis);
+               return DS_MstDiagnosis;
+           }
+           catch (Exception ex)
+           {
+               HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetTmpDivisionByStatus", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+               return null;
+               throw (ex);
+           }
+       }
+
+       [WebMethod(Description = "SetData Table：Mp.DiagnosisCmp Author:WF  2015-07-07")]
+       public bool SetMpDiagnosisCmp(string HospitalCode, string HZCode, string Type, string Code, string Redundance, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
+       {
+           try
+           {
+               bool ret = false;
+               ret = MpDiagnosisCmp.SetData(_cnCache, HospitalCode,HZCode, Type, Code,  Redundance, revUserId, TerminalName, TerminalIP, DeviceType);
+               return ret;
+           }
+           catch (Exception ex)
+           {
+               HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "SetMpDiagnosisCmp", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+               return false;
+               throw (ex);
+           }
+       }
+
+       [WebMethod(Description = "GetMpDiagnosisCmp Table：Mp.DiagnosisCmp Author:WF  2015-07-07")]
+       public DataSet GetMpDiagnosisCmp()
+       {
+           try
+           {
+               DataTable DT_MstDivision = new DataTable();
+               DataSet DS_MstDivision = new DataSet();
+               DT_MstDivision = MpDiagnosisCmp.GetMpDiagnosisCmp(_cnCache);
+               DS_MstDivision.Tables.Add(DT_MstDivision);
+               return DS_MstDivision;
+           }
+           catch (Exception ex)
+           {
+               HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "GetMpDiagnosisCmp", "WebService调用异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+               return null;
+               throw (ex);
+           }
+       }
+
+
+       #endregion
+        
+        
+        #endregion
+
         #region <" 用户管理（用户管理） WF ">
-        [WebMethod(Description = "Cm.MstUser写数据,用于用户管理页面 Table:Cm.MstUser  Author:ZYF 2015-1-20")]
+       [WebMethod(Description = "Cm.MstUser写数据,用于用户管理页面 Table:Cm.MstUser  Author:ZYF 2015-1-20")]
         // SetData 写数据 ZYF 2015-1-20
         public bool SetMstUserUM(string UserId, string UserName, string Password, string Class, int EndDate, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
         {
