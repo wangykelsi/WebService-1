@@ -141,7 +141,6 @@ namespace WebService.DataMethod
             //list.Columns.Add(new DataColumn("LabTestDateShow", typeof(string)));
             //list.Columns.Add(new DataColumn("ReportDateShow", typeof(string)));
             list.Columns.Add(new DataColumn("Creator", typeof(string)));
-            list.Columns.Add(new DataColumn("LabTestDateCom", typeof(string)));   //20150709 LS
 
             CacheCommand cmd = null;
             CacheDataReader cdr = null;
@@ -179,7 +178,7 @@ namespace WebService.DataMethod
                     {
                         ReportDateShow = cdr["ReportDate"].ToString();
                     }
-                    list.Rows.Add(cdr["VisitId"].ToString(), cdr["SortNo"].ToString(), cdr["LabItemType"].ToString(), cdr["LabItemTypeName"].ToString(), cdr["LabItemCode"].ToString(), cdr["LabItemName"].ToString(), cdr["LabTestDate"].ToString(), cdr["StatusCode"].ToString(), cdr["Status"].ToString(), ReportDateShow, cdr["DeptCode"].ToString(), cdr["DeptName"].ToString(), cdr["Creator"].ToString(), Convert.ToDateTime(cdr["LabTestDate"]).ToString("yyyy-MM-dd HH:mm:ss"));
+                    list.Rows.Add(cdr["VisitId"].ToString(), cdr["SortNo"].ToString(), cdr["LabItemType"].ToString(), cdr["LabItemTypeName"].ToString(), cdr["LabItemCode"].ToString(), cdr["LabItemName"].ToString(), cdr["LabTestDate"].ToString(), cdr["StatusCode"].ToString(), cdr["Status"].ToString(), ReportDateShow, cdr["DeptCode"].ToString(), cdr["DeptName"].ToString(), cdr["Creator"].ToString());
                 }
                 return list;
             }

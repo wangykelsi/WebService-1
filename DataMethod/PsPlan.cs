@@ -124,64 +124,6 @@ namespace WebService.DataMethod
             }
         }
 
-        // ZAM 2015-4-24 获取健康专员负责的所有患者最新结束(status = 4)计划列表
-        public static DataTable GetOverDuePlanByDoctorId(DataConnection pclsCache, string DoctorId, string Module)
-        {
-            DataTable list = new DataTable();
-            list.Columns.Add(new DataColumn("PatientId", typeof(string)));
-            list.Columns.Add(new DataColumn("PlanNo", typeof(string)));
-            list.Columns.Add(new DataColumn("StartDate", typeof(string)));
-            list.Columns.Add(new DataColumn("EndDate", typeof(string)));
-            list.Columns.Add(new DataColumn("TotalDays", typeof(string)));
-            list.Columns.Add(new DataColumn("RemainingDays", typeof(string)));
-            list.Columns.Add(new DataColumn("Status", typeof(string)));
-
-            CacheCommand cmd = null;
-            CacheDataReader cdr = null;
-            try
-            {
-                if (!pclsCache.Connect())
-                {
-                    return null;
-                }
-                cmd = new CacheCommand();
-                cmd = Ps.Plan.GetOverDuePlanByDoctorId(pclsCache.CacheConnectionObject);
-                cmd.Parameters.Add("DoctorId", CacheDbType.NVarChar).Value = DoctorId;
-                cmd.Parameters.Add("Module", CacheDbType.NVarChar).Value = Module;
-
-                cdr = cmd.ExecuteReader();
-                while (cdr.Read())
-                {
-                    list.Rows.Add(cdr["PatientId"].ToString(), cdr["PlanNo"].ToString(), cdr["StartDate"].ToString(), cdr["EndDate"].ToString(), cdr["TotalDays"].ToString(), cdr["RemainingDays"].ToString(), cdr["Status"].ToString());
-                }
-                return list;
-            }
-            catch (Exception ex)
-            {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Ps.Plan.GetOverDuePlanByDoctorId", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return null;
-            }
-            finally
-            {
-                if ((cdr != null))
-                {
-                    cdr.Close();
-                    cdr.Dispose(true);
-                    cdr = null;
-                }
-                if ((cmd != null))
-                {
-                    cmd.Parameters.Clear();
-                    cmd.Dispose();
-                    cmd = null;
-                }
-                pclsCache.DisConnect();
-            }
-        }
-
-
-       //以下是任务完成情况用到的函数
-
         //GetPlanInfo 获取某计划的相关信息 LS 2015-03-30
         public static CacheSysList GetPlanInfo(DataConnection pclsCache, string PlanNo)
         {
@@ -350,7 +292,7 @@ namespace WebService.DataMethod
                     PlanDeatil.EndDate = Convert.ToInt32(endingPlanList.Rows[i]["EndDate"]);
                     string temp = PlanDeatil.StartDate.ToString().Substring(0, 4) + "/" + PlanDeatil.StartDate.ToString().Substring(4, 2) + "/" + PlanDeatil.StartDate.ToString().Substring(6, 2);
                     string temp1 = PlanDeatil.EndDate.ToString().Substring(0, 4) + "/" + PlanDeatil.EndDate.ToString().Substring(4, 2) + "/" + PlanDeatil.EndDate.ToString().Substring(6, 2);
-                    PlanDeatil.PlanName = "往期：" + temp + "-" + temp1;
+                    PlanDeatil.PlanName = "计划：" + temp + "-" + temp1;
                     result.Add(PlanDeatil);
                 }
 
@@ -414,29 +356,69 @@ namespace WebService.DataMethod
             }
         }
 
-        //CSQ 20150407
-        public static int UpdateStatus(DataConnection pclsCache, string PlanNo, int Status, string piUserId, string piTerminalName, string piTerminalIP, int piDeviceType)
+        // ZAM 2015-4-24 获取健康专员负责的所有患者最新结束(status = 4)计划列表
+        public static DataTable GetOverDuePlanByDoctorId(DataConnection pclsCache, string DoctorId, string Module)
         {
-            int ret = 0;
+            DataTable list = new DataTable();
+            list.Columns.Add(new DataColumn("PatientId", typeof(string)));
+            list.Columns.Add(new DataColumn("PlanNo", typeof(string)));
+            list.Columns.Add(new DataColumn("StartDate", typeof(string)));
+            list.Columns.Add(new DataColumn("EndDate", typeof(string)));
+            list.Columns.Add(new DataColumn("TotalDays", typeof(string)));
+            list.Columns.Add(new DataColumn("RemainingDays", typeof(string)));
+            list.Columns.Add(new DataColumn("Status", typeof(string)));
+
+            CacheCommand cmd = null;
+            CacheDataReader cdr = null;
             try
             {
                 if (!pclsCache.Connect())
                 {
-                    return ret;
+                    return null;
                 }
+                cmd = new CacheCommand();
+                cmd = Ps.Plan.GetOverDuePlanByDoctorId(pclsCache.CacheConnectionObject);
+                cmd.Parameters.Add("DoctorId", CacheDbType.NVarChar).Value = DoctorId;
+                cmd.Parameters.Add("Module", CacheDbType.NVarChar).Value = Module;
 
-                ret = (int)Ps.Plan.UpdateData(pclsCache.CacheConnectionObject, PlanNo, Status, piUserId, piTerminalName, piTerminalIP, piDeviceType);
-                return ret;
+                cdr = cmd.ExecuteReader();
+                while (cdr.Read())
+                {
+                    list.Rows.Add(cdr["PatientId"].ToString(), cdr["PlanNo"].ToString(), cdr["StartDate"].ToString(), cdr["EndDate"].ToString(), cdr["TotalDays"].ToString(), cdr["RemainingDays"].ToString(), cdr["Status"].ToString());
+                }
+                return list;
             }
             catch (Exception ex)
             {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Ps.Plan.UpdateData", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return ret;
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Ps.Plan.GetOverDuePlanByDoctorId", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return null;
             }
             finally
             {
+                if ((cdr != null))
+                {
+                    cdr.Close();
+                    cdr.Dispose(true);
+                    cdr = null;
+                }
+                if ((cmd != null))
+                {
+                    cmd.Parameters.Clear();
+                    cmd.Dispose();
+                    cmd = null;
+                }
                 pclsCache.DisConnect();
             }
         }
+
+
+
+
+
+
+
+
+
+
     }
 }

@@ -49,10 +49,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>bin\Cache.Cm.MstDevice.dll</HintPath>
     </Reference>
-    <Reference Include="Cache.Cm.MstDiabetesDrug, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\Cache.Cm.MstDiabetesDrug.dll</HintPath>
-    </Reference>
     <Reference Include="Cache.Cm.MstDiagnosis, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>bin\Cache.Cm.MstDiagnosis.dll</HintPath>
@@ -80,10 +76,6 @@
     <Reference Include="Cache.Cm.MstHospital, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>bin\Cache.Cm.MstHospital.dll</HintPath>
-    </Reference>
-    <Reference Include="Cache.Cm.MstHypertensionDrug, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\Cache.Cm.MstHypertensionDrug.dll</HintPath>
     </Reference>
     <Reference Include="Cache.Cm.MstIndicator, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -120,6 +112,10 @@
     <Reference Include="Cache.Cm.MstNumbering, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>bin\Cache.Cm.MstNumbering.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Cm.MstOperation, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\字典维护\WebService\bin\Cache.Cm.MstOperation.dll</HintPath>
     </Reference>
     <Reference Include="Cache.Cm.MstRole, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -160,6 +156,34 @@
     <Reference Include="Cache.Mp.DivisionCmp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>bin\Cache.Mp.DivisionCmp.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Mp.DrugCmp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Mp.DrugCmp.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Mp.ExaminationCmp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Mp.ExaminationCmp.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Mp.ExaminationItemCmp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Mp.ExaminationItemCmp.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Mp.LabSubItemsCmp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Mp.LabSubItemsCmp.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Mp.LabTestItemsCmp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Mp.LabTestItemsCmp.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Mp.OperationCmp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\字典维护\WebService\bin\Cache.Mp.OperationCmp.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Mp.VitalSignsCmp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\字典维护\WebService\bin\Cache.Mp.VitalSignsCmp.dll</HintPath>
     </Reference>
     <Reference Include="Cache.Ps.BasicInfo, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -253,6 +277,30 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>bin\Cache.Tmp.DivisionDict.dll</HintPath>
     </Reference>
+    <Reference Include="Cache.Tmp.DrugDict, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Tmp.DrugDict.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Tmp.ExamDict, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Tmp.ExamDict.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Tmp.ExaminationItemDict, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Tmp.ExaminationItemDict.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Tmp.LabItemDict, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Tmp.LabItemDict.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Tmp.LabResultDict, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Cache.Tmp.LabResultDict.dll</HintPath>
+    </Reference>
+    <Reference Include="Cache.Tmp.OperationDict, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\字典维护\WebService\bin\Cache.Tmp.OperationDict.dll</HintPath>
+    </Reference>
     <Reference Include="Cache.Wn.MstBasicAlert, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>bin\Cache.Wn.MstBasicAlert.dll</HintPath>
@@ -325,7 +373,12 @@
     <Compile Include="DataClass\Implementation.cs" />
     <Compile Include="DataClass\JSONHelper.cs" />
     <Compile Include="DataClass\MessageDetail.cs" />
-    <Compile Include="DataClass\MstVitalSigns.cs" />
+    <Compile Include="DataMethod\MpDrugCmp.cs" />
+    <Compile Include="DataMethod\MpExaminationCmp.cs" />
+    <Compile Include="DataMethod\MpExaminationItemCmp.cs" />
+    <Compile Include="DataMethod\MpLabSubItemsCmp.cs" />
+    <Compile Include="DataMethod\MpLabTestItemsCmp.cs" />
+    <Compile Include="DataMethod\MstVitalSigns.cs" />
     <Compile Include="DataClass\PatientInfo.cs" />
     <Compile Include="DataClass\PersonalHomePage.cs" />
     <Compile Include="DataClass\PlanInfo.cs" />
@@ -334,7 +387,6 @@
     <Compile Include="DataMethod\CmMstAuthorityDetail.cs" />
     <Compile Include="DataMethod\CmMstBloodPressure.cs" />
     <Compile Include="DataMethod\CmMstDevice.cs" />
-    <Compile Include="DataMethod\CmMstDiabetesDrug.cs" />
     <Compile Include="DataMethod\CmMstDiagnosis.cs" />
     <Compile Include="DataMethod\CmMstDivision.cs" />
     <Compile Include="DataMethod\CmMstDrug.cs" />
@@ -343,7 +395,6 @@
     <Compile Include="DataMethod\CmMstExaminationSubItem.cs" />
     <Compile Include="DataMethod\CmMstHealthEducation.cs" />
     <Compile Include="DataMethod\CmMstHospital.cs" />
-    <Compile Include="DataMethod\CmMstHypertensionDrug.cs" />
     <Compile Include="DataMethod\CmMstIndicator.cs" />
     <Compile Include="DataMethod\CmMstIndicatorParameter.cs" />
     <Compile Include="DataMethod\CmMstInfoItem.cs" />
@@ -354,6 +405,7 @@
     <Compile Include="DataMethod\CmMstLifeStyle.cs" />
     <Compile Include="DataMethod\CmMstLifeStyleDetail.cs" />
     <Compile Include="DataMethod\CmMstNumbering.cs" />
+    <Compile Include="DataMethod\CmMstOperation.cs" />
     <Compile Include="DataMethod\CmMstRole.cs" />
     <Compile Include="DataMethod\CmMstSymptoms.cs" />
     <Compile Include="DataMethod\CmMstTreatment.cs" />
@@ -366,6 +418,8 @@
     <Compile Include="CommonLibrary\Configuration.cs" />
     <Compile Include="DataMethod\MpDiagnosisCmp.cs" />
     <Compile Include="DataMethod\MpDivisionCmp.cs" />
+    <Compile Include="DataMethod\MpOperationCmp.cs" />
+    <Compile Include="DataMethod\MpVitalSignsCmp.cs" />
     <Compile Include="DataMethod\PsCompliance.cs" />
     <Compile Include="DataMethod\PsComplianceDetail.cs" />
     <Compile Include="DataMethod\PsInPatientInfo.cs" />
@@ -398,6 +452,12 @@
     <Compile Include="DataMethod\PsVitalSigns.cs" />
     <Compile Include="DataMethod\TmpDiagnosisDict.cs" />
     <Compile Include="DataMethod\TmpDivisionDict.cs" />
+    <Compile Include="DataMethod\TmpDrugDict.cs" />
+    <Compile Include="DataMethod\TmpExamDict.cs" />
+    <Compile Include="DataMethod\TmpExaminationItemDict.cs" />
+    <Compile Include="DataMethod\TmpLabItemDict.cs" />
+    <Compile Include="DataMethod\TmpLabResultDict.cs" />
+    <Compile Include="DataMethod\TmpOperationDict.cs" />
     <Compile Include="DataMethod\WnMstBasicAlert.cs" />
     <Compile Include="DataMethod\WnMstPersonalAlert.cs" />
     <Compile Include="DataMethod\WnTrnAlertRecord.cs" />

@@ -149,33 +149,6 @@ namespace WebService.DataMethod
             }
         }
 
-        //DeleteAll LY 2015-7-9 
-        public static int DeleteAll(DataConnection pclsCache, string UserId, string CategoryCode)
-        {
-            int ret = 0;
-            try
-            {
-                if (!pclsCache.Connect())
-                {
-                    //MessageBox.Show("Cache数据库连接失败");
-                    return ret;
-
-                }
-                ret = (int)Ps.BasicInfoDetail.DeleteAll(pclsCache.CacheConnectionObject, UserId, CategoryCode);
-                return ret;
-            }
-            catch (Exception ex)
-            {
-                //MessageBox.Show(ex.ToString(), "保存失败！");
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "PsBasicInfoDetail.Delete", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
-                return ret;
-            }
-            finally
-            {
-                pclsCache.DisConnect();
-            }
-        }
-
         //GetMaxItemSeq WF 2014-12-2 
         public static int GetMaxItemSeq(DataConnection pclsCache, string UserId, string CategoryCode, string ItemCode)
         {

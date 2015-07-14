@@ -534,17 +534,16 @@ namespace WebService.DataMethod
                     //case "ClinicalInfo": list = _ServicesSoapClient.GetClinicalInfo(PatientId); //就诊表 
                     //break;
                     case "DiagnosisInfo": list = PsDiagnosis.GetDiagnosisInfo(pclsCache, UserId, VisitId);//诊断表
-                        condition = "RecordDateCom = '" + Date + "'";
+                        condition = "RecordDate = '" + Date + "'";
                         break;
                     case "ExaminationInfo": list = PsExamination.GetExaminationList(pclsCache, UserId, VisitId); //检查表（有子表）
-                        condition = "ExamDateCom = '" + Date + "'";
+                        condition = "ExamDate = '" + Date + "'";
                         break;
                     case "LabTestInfo": list = PsLabTest.GetLabTestList(pclsCache, UserId, VisitId); //化验表（有子表）
-                        condition = "LabTestDateCom = '" + Date + "'";
+                        condition = "LabTestDate = '" + Date + "'";
                         break;
                     //case "DrugRecord": list = PsDrugRecord.GetDrugRecord(pclsCache, UserId, VisitId); //用药
                     case "DrugRecord": list = PsDrugRecord.GetDrugRecordList(pclsCache, UserId, VisitId); //用药
-                        condition = "StartDateTimeCom = '" + Date + "'";
                         break;
                     default: break;
                 }

@@ -11,7 +11,7 @@ namespace WebService.DataMethod
     public class CmMstExaminationSubItem
     {
         //SetData 写数据 ZYF 2014-12-01
-        public static bool SetData(DataConnection pclsCache, string Code, string SubCode, string Name, int SortNo, string Redundance, int InvalidFlag)
+        public static bool SetData(DataConnection pclsCache, string Code, string Name, int SortNo, string InputCode, string Redundance, int InvalidFlag)
         {
             bool IsSaved = false;
             try
@@ -22,7 +22,7 @@ namespace WebService.DataMethod
                     return IsSaved;
 
                 }
-                int flag = (int)Cm.MstExaminationSubItem.SetData(pclsCache.CacheConnectionObject, Code, SubCode, Name, SortNo, Redundance, InvalidFlag);
+                int flag = (int)Cm.MstExaminationSubItem.SetData(pclsCache.CacheConnectionObject, Code, Name, SortNo, InputCode, Redundance, InvalidFlag);
                 if (flag == 1)
                 {
                     IsSaved = true;
@@ -70,7 +70,7 @@ namespace WebService.DataMethod
         }
 
         // GetName 获取名称 ZYF 2014-12-01
-        public static string GetName(DataConnection pclsCache, string Code, string SubCode)
+        public static string GetName(DataConnection pclsCache, string Code)
         {
             try
             {
@@ -79,7 +79,7 @@ namespace WebService.DataMethod
                     //MessageBox.Show("Cache数据库连接失败");
                     return null;
                 }
-                string Name = Cm.MstExaminationSubItem.GetName(pclsCache.CacheConnectionObject, Code, SubCode);
+                string Name = Cm.MstExaminationSubItem.GetName(pclsCache.CacheConnectionObject, Code);
                 return Name;
             }
             catch (Exception ex)
@@ -151,9 +151,10 @@ namespace WebService.DataMethod
         {
             DataTable list = new DataTable();
             list.Columns.Add(new DataColumn("Code", typeof(string)));
-            list.Columns.Add(new DataColumn("SubCode", typeof(string)));
+            //list.Columns.Add(new DataColumn("SubCode", typeof(string)));
             list.Columns.Add(new DataColumn("Name", typeof(string)));
             list.Columns.Add(new DataColumn("SortNo", typeof(int)));
+            list.Columns.Add(new DataColumn("InputCode", typeof(string)));
             list.Columns.Add(new DataColumn("Redundance", typeof(string)));
             list.Columns.Add(new DataColumn("InvalidFlag", typeof(int)));
             int int_InvalidFlag = 0;
@@ -183,7 +184,7 @@ namespace WebService.DataMethod
                         int_InvalidFlag = Convert.ToInt32(cdr["InvalidFlag"]);
                     }
 
-                    list.Rows.Add(cdr["Code"].ToString(), cdr["SubCode"].ToString(), cdr["Name"].ToString(), Convert.ToInt32(cdr["SortNo"]), cdr["Redundance"].ToString(), int_InvalidFlag);
+                    list.Rows.Add(cdr["Code"].ToString(), cdr["Name"].ToString(), Convert.ToInt32(cdr["SortNo"]), cdr["InputCode"].ToString(), cdr["Redundance"].ToString(), int_InvalidFlag);
                 }
                 return list;
             }
@@ -207,6 +208,32 @@ namespace WebService.DataMethod
                     cmd.Dispose();
                     cmd = null;
                 }
+                pclsCache.DisConnect();
+            }
+        }
+
+        public static int GetMaxSortNo(DataConnection pclsCache)
+        {
+            int ret = 0;
+            try
+            {
+                if (!pclsCache.Connect())
+                {
+                    //MessageBox.Show("Cache数据库连接失败");
+                    return ret;
+
+                }
+                ret = (int)Cm.MstExaminationSubItem.GetMaxSortNo(pclsCache.CacheConnectionObject);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                //MessageBox.Show(ex.ToString(), "保存失败！");
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "MstExaminationSubItem.GetMaxSortNo", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return ret;
+            }
+            finally
+            {
                 pclsCache.DisConnect();
             }
         }

@@ -8,10 +8,10 @@ using WebService.CommonLibrary;
 
 namespace WebService.DataMethod
 {
-    public class TmpDiagnosisDict
+    public class MpExaminationCmp
     {
-        // ChangeStatus WF 2015-07-07
-        public static bool ChangeStatus(DataConnection pclsCache, string HospitalCode, string Code, int Status)
+        //SetData WY 2015-07-13
+        public static bool SetData(DataConnection pclsCache, string HospitalCode, string HZCode, string Type, string Code, string Redundance, string revUserId, string TerminalName, string TerminalIP, int DeviceType)
         {
             bool IsSaved = false;
             try
@@ -20,8 +20,9 @@ namespace WebService.DataMethod
                 {
                     //MessageBox.Show("Cache数据库连接失败");
                     return IsSaved;
+
                 }
-                int flag = (int)Tmp.DiagnosisDict.ChangeStatus(pclsCache.CacheConnectionObject, HospitalCode, Code, Status);
+                int flag = (int)Mp.ExaminationCmp.SetData(pclsCache.CacheConnectionObject, HospitalCode, HZCode, Type, Code, Redundance, revUserId, TerminalName, TerminalIP, DeviceType);
                 if (flag == 1)
                 {
                     IsSaved = true;
@@ -30,8 +31,8 @@ namespace WebService.DataMethod
             }
             catch (Exception ex)
             {
-                //MessageBox.Show(ex.ToString(), "获取名称失败！");
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Tmp.DiagnosisDict.ChangeStatus", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                //MessageBox.Show(ex.ToString(), "保存失败！");
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Mp.ExaminationCmp.SetData", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
                 return IsSaved;
             }
             finally
@@ -40,19 +41,19 @@ namespace WebService.DataMethod
             }
         }
 
-        // GetListByStatus WF 2015-07-07
-        public static DataTable GetListByStatus(DataConnection pclsCache, int Status)
+        // GetListByStatus WY 2015-07-13
+        public static DataTable GetMpExaminationItemCmp(DataConnection pclsCache)
         {
             DataTable list = new DataTable();
             list.Columns.Add(new DataColumn("HospitalCode", typeof(string)));
             list.Columns.Add(new DataColumn("HospitalName", typeof(string)));
-            //list.Columns.Add(new DataColumn("Type", typeof(string)));
+            list.Columns.Add(new DataColumn("Type", typeof(string)));
+            list.Columns.Add(new DataColumn("TypeName", typeof(string)));
             list.Columns.Add(new DataColumn("Code", typeof(string)));
-            //list.Columns.Add(new DataColumn("TypeName", typeof(string)));
             list.Columns.Add(new DataColumn("Name", typeof(string)));
-            list.Columns.Add(new DataColumn("InputCode", typeof(string)));
-            list.Columns.Add(new DataColumn("Description", typeof(string)));
-            list.Columns.Add(new DataColumn("Status", typeof(int)));
+            list.Columns.Add(new DataColumn("HZCode", typeof(string)));
+            list.Columns.Add(new DataColumn("HZName", typeof(string)));
+            list.Columns.Add(new DataColumn("Redundance", typeof(string)));
 
             CacheCommand cmd = null;
             CacheDataReader cdr = null;
@@ -66,19 +67,19 @@ namespace WebService.DataMethod
                 }
 
                 cmd = new CacheCommand();
-                cmd = Tmp.DiagnosisDict.GetListByStatus(pclsCache.CacheConnectionObject);
-                cmd.Parameters.Add("Status", CacheDbType.Int).Value = Status;
+                cmd = Mp.ExaminationCmp.GetMpExaminationCmp(pclsCache.CacheConnectionObject);
+
                 //cmd.Parameters.Add("InvalidFlag", CacheDbType.Int).Value = InvalidFlag;
                 cdr = cmd.ExecuteReader();
                 while (cdr.Read())
                 {
-                    list.Rows.Add(cdr["HospitalCode"].ToString(), cdr["HospitalName"].ToString(), cdr["Code"].ToString(), cdr["Name"].ToString(), cdr["InputCode"].ToString(), cdr["Description"].ToString(), cdr["Status"]);
+                    list.Rows.Add(cdr["HospitalCode"].ToString(), cdr["HospitalName"].ToString(), cdr["Type"].ToString(), cdr["TypeName"].ToString(), cdr["Code"].ToString(), cdr["Name"].ToString(), cdr["HZCode"].ToString(), cdr["HZName"].ToString(), cdr["Redundance"].ToString());
                 }
                 return list;
             }
             catch (Exception ex)
             {
-                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Tmp.DiagnosisDict.GetListByStatus", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "Mp.ExaminationCmp.GetMpExaminationCmp", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
                 return null;
             }
             finally

@@ -46,6 +46,7 @@ namespace WebService.DataMethod
         {
             DataTable list = new DataTable();
             list.Columns.Add(new DataColumn("Code", typeof(string)));
+            //list.Columns.Add(new DataColumn("SubCode", typeof(string)));
             list.Columns.Add(new DataColumn("Name", typeof(string)));
             list.Columns.Add(new DataColumn("SortNo", typeof(int)));
             list.Columns.Add(new DataColumn("InputCode", typeof(string)));
@@ -174,7 +175,6 @@ namespace WebService.DataMethod
             list.Columns.Add(new DataColumn("CodeSubCode", typeof(string)));
             //list.Columns.Add(new DataColumn("SubCode", typeof(string)));
             list.Columns.Add(new DataColumn("Name", typeof(string)));
-            list.Columns.Add(new DataColumn("InputCode", typeof(string)));
 
             CacheCommand cmd = null;
             CacheDataReader cdr = null;
@@ -194,7 +194,7 @@ namespace WebService.DataMethod
                 cdr = cmd.ExecuteReader();
                 while (cdr.Read())
                 {
-                    list.Rows.Add(cdr["Code"].ToString(), cdr["Name"].ToString(), cdr["InputCode"].ToString());
+                    list.Rows.Add(cdr["CodeSubCode"].ToString(), cdr["Name"].ToString());
                 }
                 return list;
             }
@@ -218,6 +218,32 @@ namespace WebService.DataMethod
                     cmd.Dispose();
                     cmd = null;
                 }
+                pclsCache.DisConnect();
+            }
+        }
+
+        public static int GetMaxSortNo(DataConnection pclsCache)
+        {
+            int ret = 0;
+            try
+            {
+                if (!pclsCache.Connect())
+                {
+                    //MessageBox.Show("Cache数据库连接失败");
+                    return ret;
+
+                }
+                ret = (int)Cm.MstLabTestSubItems.GetMaxSortNo(pclsCache.CacheConnectionObject);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                //MessageBox.Show(ex.ToString(), "保存失败！");
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "MstLabTestSubItems.GetMaxSortNo", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return ret;
+            }
+            finally
+            {
                 pclsCache.DisConnect();
             }
         }

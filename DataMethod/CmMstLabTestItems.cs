@@ -326,5 +326,31 @@ namespace WebService.DataMethod
                 pclsCache.DisConnect();
             }
         }
+
+        public static int GetMaxSortNo(DataConnection pclsCache)
+        {
+            int ret = 0;
+            try
+            {
+                if (!pclsCache.Connect())
+                {
+                    //MessageBox.Show("Cache数据库连接失败");
+                    return ret;
+
+                }
+                ret = (int)Cm.MstLabTestItems.GetMaxSortNo(pclsCache.CacheConnectionObject);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                //MessageBox.Show(ex.ToString(), "保存失败！");
+                HygeiaComUtility.WriteClientLog(HygeiaEnum.LogType.ErrorLog, "CmMstLabTestItems.GetMaxSortNo", "数据库操作异常！ error information : " + ex.Message + Environment.NewLine + ex.StackTrace);
+                return ret;
+            }
+            finally
+            {
+                pclsCache.DisConnect();
+            }
+        }
     }
 }
